@@ -1,0 +1,12 @@
+{
+	"version": 9,
+	"configurePresets": [
+		{
+			"name": "default",
+			"displayName": "msvc | Ninja Multi-Config",
+			"description": "msvc | Ninja Multi-Config",
+			"generator": "Ninja Multi-Config",
+			"binaryDir": "${sourceDir}/build"
+		}
+	]
+}

@@ -1,0 +1,14 @@
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Tab & indentation settings
+IndentWidth: 3
+TabWidth: 3
+UseTab: ForIndentation
+
+# Macros
+AlignConsecutiveMacros: true
+IndentPPDirectives: AfterHash
+
+# Unions maybe more
+AlignConsecutiveDeclarations: false
