@@ -3,3 +3,5 @@ target_sources(
 
 	main.cpp
 )
+
+add_subdirectory(math)
