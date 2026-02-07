@@ -3,7 +3,7 @@
 #include <Windows.h>
 
 // internal structs
-struct Win32BackBuffer {
+struct Win32Backbuffer {
 	BITMAPINFO info;
 	void* memory;
 	int w; // width
@@ -16,12 +16,12 @@ static constexpr wchar window_class_name[] = L"rasterizer";
 static constexpr wchar window_title[] = L"Rasterizer by WhoSayin52";
 
 // static global vars;
-Win32BackBuffer  global_back_buffer;
+Win32Backbuffer  global_win32_backbuffer;
 
 // functions 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
-static void win32_draw(HDC device_context, Win32BackBuffer* buffer);
-static bool win32_init_back_buffer(Win32BackBuffer* buffer, int w, int h);
+static void win32_draw(HDC device_context, Win32Backbuffer* buffer);
+static bool win32_init_backbuffer(Win32Backbuffer* buffer, int w, int h);
 
 int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show_code) {
 	(void)prev_, cmd_args, show_code;
@@ -37,8 +37,8 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 	// Creating an instance of our window class
 	// Initializing our DIB global back buffer and using it to set window size 
-	win32_init_back_buffer(&global_back_buffer, 960, 540);
-	RECT client_rect = { 0, 0, global_back_buffer.w, global_back_buffer.h };
+	win32_init_backbuffer(&global_win32_backbuffer, 960, 540);
+	RECT client_rect = { 0, 0, global_win32_backbuffer.w, global_win32_backbuffer.h };
 	DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 	AdjustWindowRect(&client_rect, style, 0);
 
@@ -82,7 +82,7 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 		PAINTSTRUCT ps;
 		HDC device_context = BeginPaint(window, &ps);
 
-		win32_draw(device_context, &global_back_buffer);
+		win32_draw(device_context, &global_win32_backbuffer);
 
 		EndPaint(window, &ps);
 		break;
@@ -95,7 +95,7 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 	return result;
 }
 
-static void win32_draw(HDC device_context, Win32BackBuffer* buffer) {
+static void win32_draw(HDC device_context, Win32Backbuffer* buffer) {
 	StretchDIBits(
 		device_context,
 		0, 0, buffer->w, buffer->h,	// dest
@@ -105,7 +105,7 @@ static void win32_draw(HDC device_context, Win32BackBuffer* buffer) {
 	);
 }
 
-static bool win32_init_back_buffer(Win32BackBuffer* buffer, int w, int h) {
+static bool win32_init_backbuffer(Win32Backbuffer* buffer, int w, int h) {
 	ASSERT(w >= 0 && h >= 0 && buffer->memory == nullptr);
 	int bpp = 32; // bits per byte
 
