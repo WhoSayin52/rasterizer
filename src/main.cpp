@@ -20,6 +20,7 @@ Win32BackBuffer  global_back_buffer;
 
 // functions 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
+static void win32_draw(HDC device_context, Win32BackBuffer* buffer);
 static bool win32_init_back_buffer(Win32BackBuffer* buffer, int w, int h);
 
 int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show_code) {
@@ -78,7 +79,12 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 	LRESULT result{};
 	switch (message) {
 	case WM_PAINT: {
+		PAINTSTRUCT ps;
+		HDC device_context = BeginPaint(window, &ps);
 
+		win32_draw(device_context, &global_back_buffer);
+
+		EndPaint(window, &ps);
 		break;
 	}
 	default: {
@@ -87,6 +93,16 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 	}
 
 	return result;
+}
+
+static void win32_draw(HDC device_context, Win32BackBuffer* buffer) {
+	StretchDIBits(
+		device_context,
+		0, 0, buffer->w, buffer->h,	// dest
+		0, 0, buffer->w, buffer->h,	// src
+		buffer->memory, &buffer->info,
+		DIB_RGB_COLORS, SRCCOPY
+	);
 }
 
 static bool win32_init_back_buffer(Win32BackBuffer* buffer, int w, int h) {
