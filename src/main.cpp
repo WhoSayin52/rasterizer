@@ -69,6 +69,11 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 			TranslateMessage(&message);
 			DispatchMessage(&message);
 		}
+
+
+		HDC device_context = GetDC(window);
+		win32_draw(device_context, &global_win32_backbuffer);
+		ReleaseDC(window, device_context);
 	}
 
 	return 0;
@@ -91,7 +96,6 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 		result = DefWindowProc(window, message, wparam, lparam);
 	}
 	}
-
 	return result;
 }
 
