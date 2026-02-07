@@ -28,7 +28,7 @@ constexpr u64 megabytes(u64 bytes) { return kilobytes(bytes) * 1024LL; }
 constexpr u64 gigabytes(u64 bytes) { return megabytes(bytes) * 1024LL; }
 constexpr u64 terabytes(u64 bytes) { return gigabytes(bytes) * 1024LL; }
 
-#define ALIGN4(bytes) ((bytes) + 3) & ~3;
+#define ALIGN4(bytes) (((bytes) + 3) & ~3)
 
 // utility
 #define ARRAY_COUNT(arr) (sizeof((arr)) / sizeof((arr)[0]))
