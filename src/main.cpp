@@ -1,14 +1,16 @@
 #include <core/core.hpp>
 
+#include "./render/render.hpp"
+
 #include <Windows.h>
 
 // internal structs
 struct Win32Backbuffer {
 	BITMAPINFO info;
 	void* memory;
-	int w; // width
-	int h; // height
-	int pitch;
+	usize w; // width
+	usize h; // height
+	usize pitch;
 };
 
 // static global consts
@@ -21,7 +23,7 @@ Win32Backbuffer  global_win32_backbuffer;
 // functions 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 static void win32_draw(HDC device_context, Win32Backbuffer* buffer);
-static bool win32_init_backbuffer(Win32Backbuffer* buffer, int w, int h);
+static bool win32_init_backbuffer(Win32Backbuffer* buffer, usize w, usize h);
 
 int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show_code) {
 	(void)prev_, cmd_args, show_code;
@@ -38,7 +40,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 	// Creating an instance of our window class
 	// Initializing our DIB global back buffer and using it to set window size 
 	win32_init_backbuffer(&global_win32_backbuffer, 960, 540);
-	RECT client_rect = { 0, 0, global_win32_backbuffer.w, global_win32_backbuffer.h };
+	RECT client_rect = { 0, 0, (LONG)global_win32_backbuffer.w, (LONG)global_win32_backbuffer.h };
 	DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 	AdjustWindowRect(&client_rect, style, 0);
 
@@ -62,6 +64,14 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 	ShowWindow(window, show_code);
 
+	// initializing vars needed for the main loop
+	Canvas canvas;
+	canvas.memory = global_win32_backbuffer.memory;
+	canvas.w = global_win32_backbuffer.w;
+	canvas.h = global_win32_backbuffer.h;
+	canvas.pitch = global_win32_backbuffer.pitch;
+	canvas.origin = Vector2i{ (s64)canvas.w / 2, (s64)canvas.h / 2 };
+
 	bool is_running = true;
 	MSG message{};
 	while (is_running) {
@@ -70,6 +80,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 			DispatchMessage(&message);
 		}
 
+		render(&canvas);
 
 		HDC device_context = GetDC(window);
 		win32_draw(device_context, &global_win32_backbuffer);
@@ -102,29 +113,29 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 static void win32_draw(HDC device_context, Win32Backbuffer* buffer) {
 	StretchDIBits(
 		device_context,
-		0, 0, buffer->w, buffer->h,	// dest
-		0, 0, buffer->w, buffer->h,	// src
+		0, 0, (int)buffer->w, (int)buffer->h,	// dest
+		0, 0, (int)buffer->w, (int)buffer->h,	// src
 		buffer->memory, &buffer->info,
 		DIB_RGB_COLORS, SRCCOPY
 	);
 }
 
-static bool win32_init_backbuffer(Win32Backbuffer* buffer, int w, int h) {
+static bool win32_init_backbuffer(Win32Backbuffer* buffer, usize w, usize h) {
 	ASSERT(w >= 0 && h >= 0 && buffer->memory == nullptr);
-	int bpp = 32; // bits per byte
+	uint bpp = 32; // bits per byte
 
 	buffer->w = w;
 	buffer->h = h;
 
 	buffer->info.bmiHeader.biSize = sizeof(buffer->info.bmiHeader);
-	buffer->info.bmiHeader.biWidth = w;
-	buffer->info.bmiHeader.biHeight = h;
+	buffer->info.bmiHeader.biWidth = (LONG)w;
+	buffer->info.bmiHeader.biHeight = (LONG)h;
 	buffer->info.bmiHeader.biPlanes = 1;
 	buffer->info.bmiHeader.biBitCount = (WORD)(bpp);
 	buffer->info.bmiHeader.biCompression = BI_RGB;
 
 	buffer->pitch = ALIGN4(w * bpp / 8);
-	u64 memory_size = (u64)(buffer->pitch * buffer->h);
+	usize memory_size = buffer->pitch * buffer->h;
 	buffer->memory = VirtualAlloc(0, memory_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
 	return buffer->memory != nullptr;
