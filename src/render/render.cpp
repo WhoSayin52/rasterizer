@@ -26,5 +26,5 @@ static void set_pixel(Canvas* canvas, usize x, usize y, Vector3 color) {
 
 	u32* pixel = (u32*)((byte*)canvas->memory + y * canvas->pitch + x * bpp);
 
-	*pixel = (u32)red << 16 | green << 16 | blue;
+	*pixel = (u32)red << 16 | green << 8 | blue;
 }
