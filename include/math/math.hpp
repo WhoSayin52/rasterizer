@@ -31,6 +31,13 @@ namespace math {
 		return value >= 0 ? value : -value;
 	}
 
+	template <typename T>
+	void swap(T* a, T* b) {
+		T temp = *a;
+		*a = *b;
+		*b = temp;
+	}
+
 } // namespace math
 
 #endif // MATH_HPP

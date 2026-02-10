@@ -1,7 +1,7 @@
 #include "./render.hpp"
 
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color);
-static void set_pixel(Canvas* canvas, usize x, usize y, Vector3 color);
+static void set_pixel(Canvas* canvas, s64 x, s64 y, Vector3 color);
 
 void render(Canvas* canvas) {
 
@@ -18,39 +18,36 @@ static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {
 	s64 y0 = p0.y;
 	s64 y1 = p1.y;
 
-	s64 dx = math::abs(x1 - x0);
-	s64 sx = x0 < x1 ? 1 : -1;
-	s64 dy = -math::abs(y1 - y0);
-	s64 sy = y0 < y1 ? 1 : -1;
-	s64 error = dx + dy;
+	bool steep = math::abs(x0 - x1) < math::abs(y0 - y1);
+	if (steep) { // if the line is steep, we transpose the image
+		math::swap(&x0, &y0);
+		math::swap(&x1, &y1);
+	}
+	if (x0 > x1) { // make it left−to−right
+		math::swap(&x0, &x1);
+		math::swap(&y0, &y1);
+	}
 
-	while (true) {
-		set_pixel(canvas, x0, y0, color);
-		s64 e2 = 2 * error;
-		if (e2 >= dy) {
-			if (x0 == x1) {
-				break;
-			}
-			error = error + dy;
-			x0 = x0 + sx;
-		}
-		if (e2 <= dx) {
-			if (y0 == y1) {
-				break;
-			}
-			error = error + dx;
-			y0 = y0 + sy;
-		}
+	s64 ierror = 0;
+	s64 y = y0;
+	for (s64 x = x0; x <= x1; ++x) {
+		if (steep) // if transposed, de−transpose
+			set_pixel(canvas, y, x, color);
+		else
+			set_pixel(canvas, x, y, color);
+		ierror += 2 * math::abs(y1 - y0);
+		y += (y1 > y0 ? 1 : -1) * (ierror > x1 - x0);
+		ierror -= 2 * (x1 - x0) * (ierror > x1 - x0);
 	}
 }
 
-static void set_pixel(Canvas* canvas, usize x, usize y, Vector3 color) {
+static void set_pixel(Canvas* canvas, s64 x, s64 y, Vector3 color) {
 	x += canvas->origin.x;
 	y += canvas->origin.y;
 
 	ASSERT(
-		x < canvas->w &&
-		y < canvas->h &&
+		(usize)x < canvas->w &&
+		(usize)y < canvas->h &&
 		canvas->memory != nullptr
 	);
 
