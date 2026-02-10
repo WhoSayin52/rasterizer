@@ -2,7 +2,13 @@
 #define RENDER_HPP
 
 #include <core/core.hpp>
-#include <math/math.hpp>
+
+using namespace core::core;
+
+struct RendererMemory {
+	Memory permanent;
+	Memory transient;
+};
 
 struct Canvas {
 	void* memory;
@@ -12,6 +18,7 @@ struct Canvas {
 	Vector2i origin;
 };
 
+void init_renderer(RendererMemory* memory, char* assets_path);
 void render(Canvas* canvas);
 
 #endif // RENDER_HPP

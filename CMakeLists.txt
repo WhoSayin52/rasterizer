@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 4.2)
 
 project(rasterizer VERSION 0.1.0 LANGUAGES CXX)
 
+file(CREATE_LINK ${CMAKE_SOURCE_DIR}/asset ${CMAKE_BINARY_DIR}/asset SYMBOLIC)
+
 set(EXE rasterizer)
 add_executable(${EXE})
 add_subdirectory(src)

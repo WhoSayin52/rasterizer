@@ -1,11 +1,9 @@
-#ifndef MATH_HPP
-#define MATH_HPP
+#ifndef CORE_MATH_TYPES_HPP
+#define CORE_MATH_TYPES_HPP
 
-#include "./vector/vector.hpp"
+#include "./../types.hpp"
 
-#include <core/core.hpp>
-
-namespace math {
+namespace core::math::math {
 
 	// constants
 	constexpr f64 pi = 3.141592653589793;
@@ -38,6 +36,6 @@ namespace math {
 		*b = temp;
 	}
 
-} // namespace math
+} // namespace core::math::math
 
-#endif // MATH_HPP
+#endif // CORE_MATH_TYPES_HPP

@@ -1,8 +1,10 @@
-#include <core/core.hpp>
 
 #include "./render/render.hpp"
 
+#include <core/core.hpp>
 #include <Windows.h>
+
+using namespace core::core;
 
 // internal structs
 struct Win32Backbuffer {
@@ -16,9 +18,14 @@ struct Win32Backbuffer {
 // static global consts
 static constexpr wchar window_class_name[] = L"rasterizer";
 static constexpr wchar window_title[] = L"Rasterizer by WhoSayin52";
+static constexpr usize win32_backbuffer_width = 960;
+static constexpr usize win32_backbuffer_heigh = 540;
+static constexpr usize permanent_memory_size = memory::kilobytes(4);
+static constexpr usize transient_memory_size = 0;
 
 // static global vars;
 Win32Backbuffer  global_win32_backbuffer;
+bool global_is_running;
 
 // functions 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
@@ -39,7 +46,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 	// Creating an instance of our window class
 	// Initializing our DIB global back buffer and using it to set window size 
-	win32_init_backbuffer(&global_win32_backbuffer, 960, 540);
+	win32_init_backbuffer(&global_win32_backbuffer, win32_backbuffer_width, win32_backbuffer_heigh);
 	RECT client_rect = { 0, 0, (LONG)global_win32_backbuffer.w, (LONG)global_win32_backbuffer.h };
 	DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 	AdjustWindowRect(&client_rect, style, 0);
@@ -64,6 +71,16 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 	ShowWindow(window, show_code);
 
+	// initializing renderer memory
+	RendererMemory memory;
+	memory.permanent.size = permanent_memory_size;
+	memory.transient.size = transient_memory_size;
+
+	memory.permanent.base = VirtualAlloc(
+		0, memory.permanent.size + memory.transient.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
+	);
+	memory.transient.base = (byte*)memory.permanent.base + memory.permanent.size;
+
 	// initializing vars needed for the main loop
 	Canvas canvas;
 	canvas.memory = global_win32_backbuffer.memory;
@@ -72,9 +89,9 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 	canvas.pitch = global_win32_backbuffer.pitch;
 	canvas.origin = Vector2i{ (s64)canvas.w / 2, (s64)canvas.h / 2 };
 
-	bool is_running = true;
+	global_is_running = true;
 	MSG message{};
-	while (is_running) {
+	while (global_is_running) {
 		while (PeekMessage(&message, window, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&message);
 			DispatchMessage(&message);
@@ -94,6 +111,10 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 
 	LRESULT result{};
 	switch (message) {
+	case WM_CLOSE: {
+		global_is_running = false;
+		break;
+	}
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
 		HDC device_context = BeginPaint(window, &ps);
@@ -134,7 +155,7 @@ static bool win32_init_backbuffer(Win32Backbuffer* buffer, usize w, usize h) {
 	buffer->info.bmiHeader.biBitCount = (WORD)(bpp);
 	buffer->info.bmiHeader.biCompression = BI_RGB;
 
-	buffer->pitch = ALIGN4(w * bpp / 8);
+	buffer->pitch = memory::align4(w * bpp / 8);
 	usize memory_size = buffer->pitch * buffer->h;
 	buffer->memory = VirtualAlloc(0, memory_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 

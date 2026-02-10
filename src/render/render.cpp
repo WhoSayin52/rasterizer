@@ -1,5 +1,8 @@
 #include "./render.hpp"
 
+#include "./../asset_manager/asset_manager.hpp"
+
+// internal functions
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color);
 static void set_pixel(Canvas* canvas, s64 x, s64 y, Vector3 color);
 
