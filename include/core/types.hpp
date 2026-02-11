@@ -26,7 +26,11 @@ using wchar = wchar_t;
 
 using bool32 = s32;
 
+// memory
 using byte = u8;
+using uptr = uintptr_t;
+using sptr = intptr_t;
+using ptr_offset = ptrdiff_t;
 
 // utility
 #define ARRAY_COUNT(arr) (sizeof((arr)) / sizeof((arr)[0]))

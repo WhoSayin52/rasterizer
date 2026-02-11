@@ -12,9 +12,9 @@ struct RendererMemory {
 
 struct Canvas {
 	void* memory;
-	s64 w;
-	s64 h;
-	s64 pitch;
+	usize w;
+	usize h;
+	usize pitch;
 	Vector2i origin;
 };
 

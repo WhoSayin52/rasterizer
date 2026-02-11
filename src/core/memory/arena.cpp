@@ -2,7 +2,7 @@
 
 namespace core::memory::arena {
 
-	void init(Arena* arena, s64 size, void* base) {
+	void init(Arena* arena, usize size, void* base) {
 		ASSERT(base != nullptr && size > 0);
 		arena->base = (byte*)base;
 		arena->size = size;
@@ -10,10 +10,10 @@ namespace core::memory::arena {
 		arena->restore_point_count = 0;
 	}
 
-	void* push(Arena* arena, s64 size, s64 alignment) {
-		ASSERT(size > 0 && alignment > 0)
-			s64 total_size = size;
-		s64 alignment_offset = memory::get_alignment_offset((s64)arena->base + arena->used, alignment);
+	void* push(Arena* arena, usize size, usize alignment) {
+		ASSERT(size > 0 && alignment > 0);
+		usize total_size = size;
+		usize alignment_offset = memory::get_alignment_offset((uptr)arena->base + arena->used, alignment);
 		total_size += alignment_offset;
 
 		ASSERT(arena->used + total_size <= arena->size);
@@ -38,6 +38,10 @@ namespace core::memory::arena {
 		arena->used = restore_point.used;
 		ASSERT(arena->restore_point_count > 0);
 		--arena->restore_point_count;
+	}
+
+	usize remaining_size(Arena* arena, usize Alignment) {
+		return arena->size - (arena->used + memory::get_alignment_offset((usize)arena->base + arena->used, Alignment));
 	}
 
 } // namespace core::memory::arena

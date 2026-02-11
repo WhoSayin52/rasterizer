@@ -50,22 +50,22 @@ static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {
 }
 
 static void set_pixel(Canvas* canvas, s64 x, s64 y, Vector3 color) {
-	x += canvas->origin.x;
-	y += canvas->origin.y;
+	usize cx = x + canvas->origin.x;
+	usize cy = y + canvas->origin.y;
 
 	ASSERT(
-		x < canvas->w && x >= 0 &&
-		y < canvas->h && y >= 0 &&
+		cx < canvas->w &&
+		cy < canvas->h &&
 		canvas->memory != nullptr
 	);
 
-	s64 bpp = 4; // byte per pixel
+	usize bpp = 4; // byte per pixel
 
 	u8 red = (u8)math::clamp(color.r * 255.0, 0.0, 255.0);
 	u8 green = (u8)math::clamp(color.g * 255.0, 0.0, 255.0);
 	u8 blue = (u8)math::clamp(color.b * 255.0, 0.0, 255.0);
 
-	u32* pixel = (u32*)((byte*)canvas->memory + y * canvas->pitch + x * bpp);
+	u32* pixel = (u32*)((byte*)canvas->memory + cy * canvas->pitch + cx * bpp);
 
 	*pixel = (u32)red << 16 | green << 8 | blue;
 }
