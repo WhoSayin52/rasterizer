@@ -2,7 +2,8 @@
 
 #include <Windows.h>
 
-static wchar asset_dir_path[MAX_PATH * 4];
-static wchar asset_file_path[MAX_PATH * 4];
+static wchar global_path_to_assets[MAX_PATH * 4];
 
-void init_asset_manager(wchar* asset_dir_path);
+void set_asset_manager_path(wchar* path_to_assets) {
+	wcscpy_s(global_path_to_assets, ARRAY_COUNT(global_path_to_assets), path_to_assets);
+}

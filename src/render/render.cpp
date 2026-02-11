@@ -6,6 +6,11 @@
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color);
 static void set_pixel(Canvas* canvas, s64 x, s64 y, Vector3 color);
 
+void init_renderer(RendererMemory* memory, wchar* path_to_assets) {
+	set_asset_manager_path(path_to_assets);
+	(void)memory;
+}
+
 void render(Canvas* canvas) {
 
 	draw_line(canvas, { 60, 240 }, { -50, -200 }, { 1.0, 1.0, 1.0 });

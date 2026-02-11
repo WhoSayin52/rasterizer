@@ -20,7 +20,7 @@ struct Model {
 	Face* faces;
 };
 
-void init_asset_manager(wchar* asset_dir_path);
+void set_asset_manager_path(wchar* path_to_assets);
 //bool load_model(RendererMemory* memory, Model* model, char* path);
 
 #endif // ASSET_MANAGER_HPP

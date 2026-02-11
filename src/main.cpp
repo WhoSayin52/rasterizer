@@ -91,6 +91,9 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 	);
 	memory.transient.base = (byte*)memory.permanent.base + memory.permanent.size;
 
+	// initializing renderer 
+	//init_renderer(&memory)
+
 	// initializing vars needed for the main loop
 	Canvas canvas;
 	canvas.memory = global_win32_backbuffer.memory;

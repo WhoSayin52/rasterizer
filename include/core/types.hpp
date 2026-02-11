@@ -28,12 +28,6 @@ using bool32 = s32;
 
 using byte = u8;
 
-// string
-struct WString {
-	wchar* wstring;
-	s64 count;
-};
-
 // utility
 #define ARRAY_COUNT(arr) (sizeof((arr)) / sizeof((arr)[0]))
 

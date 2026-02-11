@@ -18,6 +18,8 @@ struct Canvas {
 	Vector2i origin;
 };
 
+void init_renderer(RendererMemory* memory, wchar* path_to_assets);
+
 void render(Canvas* canvas);
 
 #endif // RENDER_HPP

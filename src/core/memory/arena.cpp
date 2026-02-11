@@ -7,6 +7,7 @@ namespace core::memory::arena {
 		arena->base = (byte*)base;
 		arena->size = size;
 		arena->used = 0;
+		arena->restore_point_count = 0;
 	}
 
 	void* push(Arena* arena, s64 size, s64 alignment) {
@@ -21,6 +22,22 @@ namespace core::memory::arena {
 
 		ASSERT(total_size >= size);
 		return result;
+	}
+
+	RestorePoint begin_temporary_memory(Arena* arena) {
+		RestorePoint restore_point;
+		restore_point.arena = arena;
+		restore_point.used = arena->used;
+		++arena->restore_point_count;
+		return restore_point;
+	}
+
+	void end_temporary_memory(RestorePoint restore_point) {
+		Arena* arena = restore_point.arena;
+		ASSERT(arena->used >= restore_point.used);
+		arena->used = restore_point.used;
+		ASSERT(arena->restore_point_count > 0);
+		--arena->restore_point_count;
 	}
 
 } // namespace core::memory::arena
