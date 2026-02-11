@@ -6,34 +6,40 @@
 
 using namespace core::core;
 
+// static global consts
+constexpr wchar window_class_name[] = L"rasterizer";
+constexpr wchar window_title[] = L"Rasterizer by WhoSayin52";
+constexpr s64 win32_backbuffer_width = 960;
+constexpr s64 win32_backbuffer_heigh = 540;
+constexpr s64 permanent_memory_size = memory::kilobytes(4);
+constexpr s64 transient_memory_size = 0;
+
 // internal structs
 struct Win32Backbuffer {
 	BITMAPINFO info;
 	void* memory;
-	usize w; // width
-	usize h; // height
-	usize pitch;
+	s64 w; // width
+	s64 h; // height
+	s64 pitch;
 };
 
-// static global consts
-static constexpr wchar window_class_name[] = L"rasterizer";
-static constexpr wchar window_title[] = L"Rasterizer by WhoSayin52";
-static constexpr usize win32_backbuffer_width = 960;
-static constexpr usize win32_backbuffer_heigh = 540;
-static constexpr usize permanent_memory_size = memory::kilobytes(4);
-static constexpr usize transient_memory_size = 0;
+struct Win32State {
+	wchar exe_path[MAX_PATH * 4];
+	wchar* exe_name;
+};
 
 // static global vars;
-Win32Backbuffer  global_win32_backbuffer;
-bool global_is_running;
+static Win32Backbuffer global_win32_backbuffer;
+static bool global_is_running;
 
 // functions 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 static void win32_draw(HDC device_context, Win32Backbuffer* buffer);
-static bool win32_init_backbuffer(Win32Backbuffer* buffer, usize w, usize h);
+static bool win32_init_backbuffer(Win32Backbuffer* buffer, s64 w, s64 h);
+static void win32_get_exe_path(Win32State* state);
 
 int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show_code) {
-	(void)prev_, cmd_args, show_code;
+	(void)prev_, cmd_args;
 
 	// creating and registering a window with OS
 	WNDCLASS window_class{};
@@ -71,6 +77,10 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 	ShowWindow(window, show_code);
 
+	// initializing win32 state
+	Win32State win32_state{};
+	win32_get_exe_path(&win32_state);
+
 	// initializing renderer memory
 	RendererMemory memory;
 	memory.permanent.size = permanent_memory_size;
@@ -87,7 +97,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 	canvas.w = global_win32_backbuffer.w;
 	canvas.h = global_win32_backbuffer.h;
 	canvas.pitch = global_win32_backbuffer.pitch;
-	canvas.origin = Vector2i{ (s64)canvas.w / 2, (s64)canvas.h / 2 };
+	canvas.origin = Vector2i{ canvas.w / 2, canvas.h / 2 };
 
 	global_is_running = true;
 	MSG message{};
@@ -141,9 +151,9 @@ static void win32_draw(HDC device_context, Win32Backbuffer* buffer) {
 	);
 }
 
-static bool win32_init_backbuffer(Win32Backbuffer* buffer, usize w, usize h) {
-	ASSERT(w >= 0 && h >= 0 && buffer->memory == nullptr);
-	uint bpp = 32; // bits per byte
+static bool win32_init_backbuffer(Win32Backbuffer* buffer, s64 w, s64 h) {
+	ASSERT(w > 0 && h > 0 && buffer->memory == nullptr);
+	s64 bpp = 32; // bits per byte
 
 	buffer->w = w;
 	buffer->h = h;
@@ -156,8 +166,20 @@ static bool win32_init_backbuffer(Win32Backbuffer* buffer, usize w, usize h) {
 	buffer->info.bmiHeader.biCompression = BI_RGB;
 
 	buffer->pitch = memory::align4(w * bpp / 8);
-	usize memory_size = buffer->pitch * buffer->h;
+	s64 memory_size = buffer->pitch * buffer->h;
 	buffer->memory = VirtualAlloc(0, memory_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
 	return buffer->memory != nullptr;
+}
+
+static void win32_get_exe_path(Win32State* state) {
+	SetLastError(0);
+	s64 file_path_size = (s64)GetModuleFileName(nullptr, state->exe_path, ARRAY_COUNT(state->exe_path));
+	ASSERT(file_path_size > 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER);
+	state->exe_name = state->exe_path;
+	for (wchar* scan = state->exe_path; *scan; ++scan) {
+		if (*scan == L'\\') {
+			state->exe_name = scan + 1;
+		}
+	}
 }

@@ -12,13 +12,12 @@ struct RendererMemory {
 
 struct Canvas {
 	void* memory;
-	usize w;
-	usize h;
-	usize pitch;
+	s64 w;
+	s64 h;
+	s64 pitch;
 	Vector2i origin;
 };
 
-void init_renderer(RendererMemory* memory, char* assets_path);
 void render(Canvas* canvas);
 
 #endif // RENDER_HPP

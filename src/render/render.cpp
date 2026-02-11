@@ -49,12 +49,12 @@ static void set_pixel(Canvas* canvas, s64 x, s64 y, Vector3 color) {
 	y += canvas->origin.y;
 
 	ASSERT(
-		(usize)x < canvas->w &&
-		(usize)y < canvas->h &&
+		x < canvas->w && x >= 0 &&
+		y < canvas->h && y >= 0 &&
 		canvas->memory != nullptr
 	);
 
-	usize bpp = 4; // byte per pixel
+	s64 bpp = 4; // byte per pixel
 
 	u8 red = (u8)math::clamp(color.r * 255.0, 0.0, 255.0);
 	u8 green = (u8)math::clamp(color.g * 255.0, 0.0, 255.0);

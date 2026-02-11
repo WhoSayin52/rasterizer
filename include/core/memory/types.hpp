@@ -7,24 +7,28 @@ namespace core::memory {
 	// memory
 	struct Memory {
 		void* base;
-		usize size;
+		s64 size;
 	};
 
 } // namespace core::memory
 
 namespace core::memory::memory {
 
-	constexpr usize kilobytes(usize bytes) { return bytes * 1024LL; }
-	constexpr usize megabytes(usize bytes) { return kilobytes(bytes) * 1024LL; }
-	constexpr usize gigabytes(usize bytes) { return megabytes(bytes) * 1024LL; }
-	constexpr usize terabytes(usize bytes) { return gigabytes(bytes) * 1024LL; }
+	constexpr s64 kilobytes(s64 bytes) { return bytes * 1024LL; }
+	constexpr s64 megabytes(s64 bytes) { return kilobytes(bytes) * 1024LL; }
+	constexpr s64 gigabytes(s64 bytes) { return megabytes(bytes) * 1024LL; }
+	constexpr s64 terabytes(s64 bytes) { return gigabytes(bytes) * 1024LL; }
 
-	constexpr usize align4(usize bytes) { return (bytes + 3) & ~3; }
+	constexpr s64 align_up(s64 bytes, s64 alignment) {
+		ASSERT(bytes >= 0 && alignment > 0 && alignment % 2 == 0);
+		return (bytes + (alignment - 1)) & ~(alignment - 1);
+	}
+	constexpr s64 align4(s64 bytes) { return align_up(bytes, 4); }
 
-	constexpr usize get_alignment_offset(usize index, usize alignment) {
-		ASSERT(alignment % 2 == 0);
-		usize alignment_mask = alignment - 1;
-		usize offset = 0;
+	constexpr s64 get_alignment_offset(s64 index, s64 alignment) {
+		ASSERT(index >= 0 && alignment > 0 && alignment % 2 == 0);
+		s64 alignment_mask = alignment - 1;
+		s64 offset = 0;
 		if (index & alignment_mask) {
 			offset = alignment - (index & alignment_mask);
 		}

@@ -6,16 +6,16 @@
 namespace core::memory {
 	struct Arena {
 		byte* base;
-		usize size;
-		usize used;
+		s64 size;
+		s64 used;
 	};
 } // namespace core::memory
 
 namespace core::memory::arena {
 
-	void init(Arena* arena, usize size, void* base);
+	void init(Arena* arena, s64 size, void* base);
 
-	void* push(Arena* arena, usize size, usize alignment);
+	void* push(Arena* arena, s64 size, s64 alignment);
 
 } // namespace core::memory::arena
 
