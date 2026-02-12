@@ -4,7 +4,7 @@
 
 // internal functions
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color);
-static void set_pixel(Canvas* canvas, s64 x, s64 y, Vector3 color);
+static void set_pixel(Canvas* canvas, s32 x, s32 y, Vector3 color);
 
 void init_renderer(RendererMemory* memory, wchar* path_to_assets) {
 	set_asset_manager_path(path_to_assets);
@@ -21,10 +21,10 @@ void render(Canvas* canvas) {
 
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {
 	// Bresenhams Algorithm
-	s64 x0 = p0.x;
-	s64 x1 = p1.x;
-	s64 y0 = p0.y;
-	s64 y1 = p1.y;
+	s32 x0 = p0.x;
+	s32 x1 = p1.x;
+	s32 y0 = p0.y;
+	s32 y1 = p1.y;
 
 	bool steep = math::abs(x0 - x1) < math::abs(y0 - y1);
 	if (steep) { // if the line is steep, we transpose the image
@@ -36,9 +36,9 @@ static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {
 		math::swap(&y0, &y1);
 	}
 
-	s64 ierror = 0;
-	s64 y = y0;
-	for (s64 x = x0; x <= x1; ++x) {
+	s32 ierror = 0;
+	s32 y = y0;
+	for (s32 x = x0; x <= x1; ++x) {
 		if (steep) // if transposed, de−transpose
 			set_pixel(canvas, y, x, color);
 		else
@@ -49,9 +49,9 @@ static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {
 	}
 }
 
-static void set_pixel(Canvas* canvas, s64 x, s64 y, Vector3 color) {
-	usize cx = x + canvas->origin.x;
-	usize cy = y + canvas->origin.y;
+static void set_pixel(Canvas* canvas, s32 x, s32 y, Vector3 color) {
+	u32 cx = x + canvas->origin.x;
+	u32 cy = y + canvas->origin.y;
 
 	ASSERT(
 		cx < canvas->w &&
@@ -59,11 +59,11 @@ static void set_pixel(Canvas* canvas, s64 x, s64 y, Vector3 color) {
 		canvas->memory != nullptr
 	);
 
-	usize bpp = 4; // byte per pixel
+	u32 bpp = 4; // byte per pixel
 
-	u8 red = (u8)math::clamp(color.r * 255.0, 0.0, 255.0);
-	u8 green = (u8)math::clamp(color.g * 255.0, 0.0, 255.0);
-	u8 blue = (u8)math::clamp(color.b * 255.0, 0.0, 255.0);
+	u8 red = (u8)math::clamp(color.r * 255.0f, 0.0f, 255.0f);
+	u8 green = (u8)math::clamp(color.g * 255.0f, 0.0f, 255.0f);
+	u8 blue = (u8)math::clamp(color.b * 255.0f, 0.0f, 255.0f);
 
 	u32* pixel = (u32*)((byte*)canvas->memory + cy * canvas->pitch + cx * bpp);
 

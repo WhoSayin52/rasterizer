@@ -6,7 +6,8 @@
 namespace core::math::math {
 
 	// constants
-	constexpr f64 pi = 3.141592653589793;
+	constexpr f64 pi64 = 3.141592653589793;
+	constexpr f32 pi32 = 3.1415927f;
 
 	// utility functions
 	template <typename T>

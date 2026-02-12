@@ -10,10 +10,10 @@ namespace core::math {
 #pragma warning(disable: 4201)
 	struct Vector2 {
 		union {
-			struct { f64 x, y; };
-			struct { f64 w, h; };
-			struct { f64 min, max; };
-			f64 data[2];
+			struct { f32 x, y; };
+			struct { f32 w, h; };
+			struct { f32 min, max; };
+			f32 data[2];
 		};
 	};
 #pragma warning(pop)
@@ -30,8 +30,8 @@ namespace core::math {
 	constexpr Vector2 operator-(Vector2 v1, Vector2 v2) { return { (v1.x - v2.x), (v1.y - v2.y) }; }
 	constexpr Vector2 operator*(Vector2 v1, Vector2 v2) { return { (v1.x * v2.x), (v1.y * v2.y) }; }
 
-	constexpr Vector2 operator*(Vector2 v, f64 scaler) { return { (v.x * scaler), (v.y * scaler) }; }
-	constexpr Vector2 operator*(f64 scaler, Vector2 v) { return v * scaler; }
+	constexpr Vector2 operator*(Vector2 v, f32 scaler) { return { (v.x * scaler), (v.y * scaler) }; }
+	constexpr Vector2 operator*(f32 scaler, Vector2 v) { return v * scaler; }
 
 	constexpr bool operator==(Vector2 v1, Vector2 v2) { return (v1.x == v2.x) && (v1.y == v2.y); }
 	constexpr bool operator!=(Vector2 v1, Vector2 v2) { return (v1.x != v2.x) || (v1.y != v2.y); }
@@ -40,11 +40,11 @@ namespace core::math {
 
 namespace core::math::vector {
 	// functions
-	constexpr f64 dot(Vector2 v1, Vector2 v2) {
+	constexpr f32 dot(Vector2 v1, Vector2 v2) {
 		return (v1.x * v2.x) + (v1.y * v2.y);
 	}
 
-	f64 length(Vector2 v);
+	f32 length(Vector2 v);
 
 	Vector2 normalize(Vector2 v);
 

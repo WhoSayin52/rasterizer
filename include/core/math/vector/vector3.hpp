@@ -10,10 +10,10 @@ namespace core::math {
 #pragma warning(disable: 4201)
 	struct Vector3 {
 		union {
-			struct { f64 x, y, z; };
-			struct { f64 w, h, l; };
-			struct { f64 r, g, b; };
-			f64 data[3];
+			struct { f32 x, y, z; };
+			struct { f32 w, h, l; };
+			struct { f32 r, g, b; };
+			f32 data[3];
 		};
 	};
 #pragma warning(pop)
@@ -30,8 +30,8 @@ namespace core::math {
 	constexpr Vector3 operator-(Vector3 v1, Vector3 v2) { return { (v1.x - v2.x), (v1.y - v2.y), (v1.z - v2.z) }; }
 	constexpr Vector3 operator*(Vector3 v1, Vector3 v2) { return { (v1.x * v2.x), (v1.y * v2.y), (v1.z * v2.z) }; }
 
-	constexpr Vector3 operator*(Vector3 v, f64 scaler) { return { (v.x * scaler), (v.y * scaler), (v.z * scaler) }; }
-	constexpr Vector3 operator*(f64 scaler, Vector3 v) { return v * scaler; }
+	constexpr Vector3 operator*(Vector3 v, f32 scaler) { return { (v.x * scaler), (v.y * scaler), (v.z * scaler) }; }
+	constexpr Vector3 operator*(f32 scaler, Vector3 v) { return v * scaler; }
 
 	constexpr bool operator==(Vector3 v1, Vector3 v2) { return (v1.x == v2.x) && (v1.y == v2.y) && (v1.z == v2.z); }
 	constexpr bool operator!=(Vector3 v1, Vector3 v2) { return (v1.x != v2.x) || (v1.y != v2.y) && (v1.z != v2.z); }
@@ -40,19 +40,19 @@ namespace core::math {
 
 namespace core::math::vector {
 	// functions
-	constexpr f64 dot(Vector3 v1, Vector3 v2) {
+	constexpr f32 dot(Vector3 v1, Vector3 v2) {
 		return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z);
 	}
 	constexpr Vector3 cross(Vector3 v1, Vector3 v2) {
 		return { (v1.y * v2.z - v1.z * v2.y), (v1.z * v2.x - v1.x * v2.z), (v1.x * v2.y - v1.y * v2.x) };
 	}
 
-	f64 length(Vector3 v);
+	f32 length(Vector3 v);
 
 	Vector3 normalize(Vector3 v);
 
 	constexpr Vector3 reflect(Vector3 vector, Vector3 normal) {
-		return (normal * (2.0 * dot(vector, normal))) - vector;
+		return (normal * (2.0f * dot(vector, normal))) - vector;
 	}
 } // namespace core::math::vector
 

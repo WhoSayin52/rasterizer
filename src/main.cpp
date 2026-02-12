@@ -9,8 +9,8 @@ using namespace core::core;
 // static global consts
 constexpr wchar window_class_name[] = L"rasterizer";
 constexpr wchar window_title[] = L"Rasterizer by WhoSayin52";
-constexpr usize win32_backbuffer_width = 960;
-constexpr usize win32_backbuffer_heigh = 540;
+constexpr u32 win32_backbuffer_width = 960;
+constexpr u32 win32_backbuffer_heigh = 540;
 constexpr usize permanent_memory_size = memory::kilobytes(4);
 constexpr usize transient_memory_size = 0;
 
@@ -18,8 +18,8 @@ constexpr usize transient_memory_size = 0;
 struct Win32Backbuffer {
 	BITMAPINFO info;
 	void* memory;
-	usize w; // width
-	usize h; // height
+	u32 w; // width
+	u32 h; // height
 	usize pitch;
 };
 
@@ -35,7 +35,7 @@ static bool global_is_running;
 // functions 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 static void win32_draw(HDC device_context, Win32Backbuffer* buffer);
-static bool win32_init_backbuffer(Win32Backbuffer* buffer, usize w, usize h);
+static bool win32_init_backbuffer(Win32Backbuffer* buffer, u32 w, u32 h);
 static void win32_get_exe_path(Win32State* state);
 
 int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show_code) {
@@ -100,7 +100,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 	canvas.w = global_win32_backbuffer.w;
 	canvas.h = global_win32_backbuffer.h;
 	canvas.pitch = global_win32_backbuffer.pitch;
-	canvas.origin = Vector2i{ (s64)canvas.w / 2, (s64)canvas.h / 2 };
+	canvas.origin = Vector2i{ (s32)canvas.w / 2, (s32)canvas.h / 2 };
 
 	global_is_running = true;
 	MSG message{};
@@ -154,9 +154,9 @@ static void win32_draw(HDC device_context, Win32Backbuffer* buffer) {
 	);
 }
 
-static bool win32_init_backbuffer(Win32Backbuffer* buffer, usize w, usize h) {
+static bool win32_init_backbuffer(Win32Backbuffer* buffer, u32 w, u32 h) {
 	ASSERT(w > 0 && h > 0 && buffer->memory == nullptr);
-	usize bpp = 32; // bits per byte
+	u32 bpp = 32; // bits per byte
 
 	buffer->w = w;
 	buffer->h = h;
@@ -177,7 +177,7 @@ static bool win32_init_backbuffer(Win32Backbuffer* buffer, usize w, usize h) {
 
 static void win32_get_exe_path(Win32State* state) {
 	SetLastError(0);
-	usize file_path_size = GetModuleFileName(nullptr, state->exe_path, ARRAY_COUNT(state->exe_path));
+	DWORD file_path_size = GetModuleFileName(nullptr, state->exe_path, ARRAY_COUNT(state->exe_path));
 	ASSERT(file_path_size > 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER);
 	state->exe_name = state->exe_path;
 	for (wchar* scan = state->exe_path; *scan; ++scan) {
