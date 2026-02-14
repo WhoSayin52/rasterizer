@@ -3,18 +3,19 @@
 
 #include <core/core.hpp>
 
-using namespace core::core;
-
 struct RendererMemory {
-	Memory permanent;
-	Memory transient;
+	void* permanent_memory;
+	usize permanent_memory_size;
+
+	void* transient_memory;
+	usize transient_memory_size;
 };
 
 struct Canvas {
 	void* memory;
 	u32 w;
 	u32 h;
-	usize pitch;
+	u32 pitch;
 	Vector2i origin;
 };
 

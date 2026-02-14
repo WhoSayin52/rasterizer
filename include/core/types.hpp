@@ -9,7 +9,6 @@ using s8 = int8_t;
 using s16 = int16_t;
 using s32 = int32_t;
 using s64 = int64_t;
-using ssize = ptrdiff_t;
 
 using uint = unsigned int;
 using u8 = uint8_t;
@@ -28,21 +27,21 @@ using bool32 = s32;
 
 // memory
 using byte = u8;
-using uptr = uintptr_t;
-using sptr = intptr_t;
-using ptr_offset = ptrdiff_t;
+using uptr = uintptr_t;	// unsigned memory management
+using sptr = intptr_t;	// signed memory management 
+using ptroffset = ptrdiff_t;
 
 // utility
-#define ARRAY_COUNT(arr) (sizeof((arr)) / sizeof((arr)[0]))
+#define array_count(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
 // debugging
 #if !defined(NDEBUG)
-#	define ASSERT(x)     \
+#	define assert(x)     \
 		if(!(x)){         \
 			*(int*)0 = 0;  \
 		}
 #else
-#	define ASSERT(x)
+#	define assert(x)
 #endif // !defined(NDEBUG)
 
 #endif // CORE_TYPES_HPP

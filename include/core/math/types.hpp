@@ -3,11 +3,11 @@
 
 #include "./../types.hpp"
 
-namespace core::math::math {
+namespace Math {
 
 	// constants
-	constexpr f64 pi64 = 3.141592653589793;
-	constexpr f32 pi32 = 3.1415927f;
+	constexpr f64 PI64 = 3.141592653589793;
+	constexpr f32 PI32 = 3.1415927f;
 
 	// utility functions
 	template <typename T>
@@ -37,6 +37,6 @@ namespace core::math::math {
 		*b = temp;
 	}
 
-} // namespace core::math::math
+} // namespace Math
 
 #endif // CORE_MATH_TYPES_HPP

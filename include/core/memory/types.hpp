@@ -3,16 +3,7 @@
 
 #include "./../types.hpp"
 
-namespace core::memory {
-	// memory
-	struct Memory {
-		void* base;
-		usize size;
-	};
-
-} // namespace core::memory
-
-namespace core::memory::memory {
+namespace Memory {
 
 	constexpr usize kilobytes(usize bytes) { return bytes * 1024ULL; }
 	constexpr usize megabytes(usize bytes) { return kilobytes(bytes) * 1024ULL; }
@@ -22,22 +13,22 @@ namespace core::memory::memory {
 	constexpr bool is_power_2(usize value) { return (value & (value - 1)) == 0; }
 
 	constexpr usize align_up(usize bytes, usize alignment) {
-		ASSERT(alignment != 0 && is_power_2(alignment));
+		assert(alignment != 0 && is_power_2(alignment));
 		return (bytes + (alignment - 1)) & ~(alignment - 1);
 	}
 	constexpr usize align4(usize bytes) { return align_up(bytes, 4); }
 
 	constexpr usize get_alignment_offset(uptr address, usize alignment) {
-		ASSERT(alignment != 0 && is_power_2(alignment));
+		assert(alignment != 0 && is_power_2(alignment));
 		usize alignment_mask = alignment - 1;
 		usize offset = 0;
 		if (address & alignment_mask) {
-			offset = alignment - (address & alignment_mask);
-			ASSERT(offset <= alignment);
+			offset = alignment - (usize)(address & alignment_mask);
+			assert(offset <= alignment);
 		}
 		return offset;
 	}
 
-} // namespace core::memory::memory
+} // namespace Memory
 
 #endif // CORE_MEMORY_TYPES_HPP

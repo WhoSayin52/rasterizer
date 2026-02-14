@@ -4,14 +4,12 @@
 #include <core/core.hpp>
 #include <Windows.h>
 
-using namespace core::core;
-
 // static global consts
 constexpr wchar window_class_name[] = L"rasterizer";
 constexpr wchar window_title[] = L"Rasterizer by WhoSayin52";
 constexpr u32 win32_backbuffer_width = 960;
 constexpr u32 win32_backbuffer_heigh = 540;
-constexpr usize permanent_memory_size = memory::kilobytes(4);
+constexpr usize permanent_memory_size = Memory::kilobytes(4);
 constexpr usize transient_memory_size = 0;
 
 // internal structs
@@ -20,7 +18,7 @@ struct Win32Backbuffer {
 	void* memory;
 	u32 w; // width
 	u32 h; // height
-	usize pitch;
+	u32 pitch;
 };
 
 struct Win32State {
@@ -83,13 +81,13 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 	// initializing renderer memory
 	RendererMemory memory;
-	memory.permanent.size = permanent_memory_size;
-	memory.transient.size = transient_memory_size;
+	memory.permanent_memory_size = permanent_memory_size;
+	memory.transient_memory_size = transient_memory_size;
 
-	memory.permanent.base = VirtualAlloc(
-		0, memory.permanent.size + memory.transient.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
+	memory.permanent_memory = VirtualAlloc(
+		0, memory.permanent_memory_size + memory.transient_memory_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
 	);
-	memory.transient.base = (byte*)memory.permanent.base + memory.permanent.size;
+	memory.transient_memory = (byte*)memory.permanent_memory + memory.permanent_memory_size;
 
 	// initializing renderer 
 	//init_renderer(&memory)
@@ -155,7 +153,7 @@ static void win32_draw(HDC device_context, Win32Backbuffer* buffer) {
 }
 
 static bool win32_init_backbuffer(Win32Backbuffer* buffer, u32 w, u32 h) {
-	ASSERT(w > 0 && h > 0 && buffer->memory == nullptr);
+	assert(w > 0 && h > 0 && buffer->memory == nullptr);
 	u32 bpp = 32; // bits per byte
 
 	buffer->w = w;
@@ -168,8 +166,8 @@ static bool win32_init_backbuffer(Win32Backbuffer* buffer, u32 w, u32 h) {
 	buffer->info.bmiHeader.biBitCount = (WORD)(bpp);
 	buffer->info.bmiHeader.biCompression = BI_RGB;
 
-	buffer->pitch = memory::align4(w * bpp / 8);
-	usize memory_size = buffer->pitch * buffer->h;
+	buffer->pitch = (u32)Memory::align4(w * bpp / 8);
+	u32 memory_size = buffer->pitch * buffer->h;
 	buffer->memory = VirtualAlloc(0, memory_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
 	return buffer->memory != nullptr;
@@ -177,8 +175,8 @@ static bool win32_init_backbuffer(Win32Backbuffer* buffer, u32 w, u32 h) {
 
 static void win32_get_exe_path(Win32State* state) {
 	SetLastError(0);
-	DWORD file_path_size = GetModuleFileName(nullptr, state->exe_path, ARRAY_COUNT(state->exe_path));
-	ASSERT(file_path_size > 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER);
+	DWORD file_path_size = GetModuleFileName(nullptr, state->exe_path, array_count(state->exe_path));
+	assert(file_path_size > 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER);
 	state->exe_name = state->exe_path;
 	for (wchar* scan = state->exe_path; *scan; ++scan) {
 		if (*scan == L'\\') {

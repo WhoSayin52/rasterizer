@@ -26,14 +26,14 @@ static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {
 	s32 y0 = p0.y;
 	s32 y1 = p1.y;
 
-	bool steep = math::abs(x0 - x1) < math::abs(y0 - y1);
+	bool steep = Math::abs(x0 - x1) < Math::abs(y0 - y1);
 	if (steep) { // if the line is steep, we transpose the image
-		math::swap(&x0, &y0);
-		math::swap(&x1, &y1);
+		Math::swap(&x0, &y0);
+		Math::swap(&x1, &y1);
 	}
 	if (x0 > x1) { // make it left−to−right
-		math::swap(&x0, &x1);
-		math::swap(&y0, &y1);
+		Math::swap(&x0, &x1);
+		Math::swap(&y0, &y1);
 	}
 
 	s32 ierror = 0;
@@ -43,7 +43,7 @@ static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {
 			set_pixel(canvas, y, x, color);
 		else
 			set_pixel(canvas, x, y, color);
-		ierror += 2 * math::abs(y1 - y0);
+		ierror += 2 * Math::abs(y1 - y0);
 		y += (y1 > y0 ? 1 : -1) * (ierror > x1 - x0);
 		ierror -= 2 * (x1 - x0) * (ierror > x1 - x0);
 	}
@@ -53,7 +53,7 @@ static void set_pixel(Canvas* canvas, s32 x, s32 y, Vector3 color) {
 	u32 cx = x + canvas->origin.x;
 	u32 cy = y + canvas->origin.y;
 
-	ASSERT(
+	assert(
 		cx < canvas->w &&
 		cy < canvas->h &&
 		canvas->memory != nullptr
@@ -61,9 +61,9 @@ static void set_pixel(Canvas* canvas, s32 x, s32 y, Vector3 color) {
 
 	u32 bpp = 4; // byte per pixel
 
-	u8 red = (u8)math::clamp(color.r * 255.0f, 0.0f, 255.0f);
-	u8 green = (u8)math::clamp(color.g * 255.0f, 0.0f, 255.0f);
-	u8 blue = (u8)math::clamp(color.b * 255.0f, 0.0f, 255.0f);
+	u8 red = (u8)Math::clamp(color.r * 255.0f, 0.0f, 255.0f);
+	u8 green = (u8)Math::clamp(color.g * 255.0f, 0.0f, 255.0f);
+	u8 blue = (u8)Math::clamp(color.b * 255.0f, 0.0f, 255.0f);
 
 	u32* pixel = (u32*)((byte*)canvas->memory + cy * canvas->pitch + cx * bpp);
 

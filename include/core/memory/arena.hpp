@@ -3,17 +3,15 @@
 
 #include "./types.hpp"
 
-namespace core::memory {
+namespace Memory {
+
 	struct Arena {
 		byte* base;
 		usize size;
 		usize used;
 
-		s64 restore_point_count;
+		s32 restore_point_count;
 	};
-} // namespace core::memory
-
-namespace core::memory::arena {
 
 	struct RestorePoint {
 		Arena* arena;
@@ -33,6 +31,6 @@ namespace core::memory::arena {
 	//inline void ZeroSize(memory_index Size, void* Ptr)
 	//inline void SubArena( memory_arena* Result, memory_arena * Arena, memory_index Size, memory_index Alignment = 16)
 
-} // namespace core::memory::arena
+} // namespace Memory
 
 #endif // CORE_MEMORY_ARENA_HPP

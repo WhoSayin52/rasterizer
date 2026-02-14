@@ -1,9 +1,9 @@
 #include <core/memory/arena.hpp>
 
-namespace core::memory::arena {
+namespace Memory {
 
 	void init(Arena* arena, usize size, void* base) {
-		ASSERT(base != nullptr && size > 0);
+		assert(size > 0 && base != nullptr);
 		arena->base = (byte*)base;
 		arena->size = size;
 		arena->used = 0;
@@ -11,16 +11,16 @@ namespace core::memory::arena {
 	}
 
 	void* push(Arena* arena, usize size, usize alignment) {
-		ASSERT(size > 0 && alignment > 0);
+		assert(size > 0 && alignment > 0);
 		usize total_size = size;
-		usize alignment_offset = memory::get_alignment_offset((uptr)arena->base + arena->used, alignment);
+		usize alignment_offset = get_alignment_offset((uptr)arena->base + arena->used, alignment);
 		total_size += alignment_offset;
 
-		ASSERT(arena->used + total_size <= arena->size);
+		assert(arena->used + total_size <= arena->size);
 		void* result = arena->base + arena->used + alignment_offset;
 		arena->used += total_size;
 
-		ASSERT(total_size >= size);
+		assert(total_size >= size);
 		return result;
 	}
 
@@ -34,15 +34,15 @@ namespace core::memory::arena {
 
 	void end_temporary_memory(RestorePoint restore_point) {
 		Arena* arena = restore_point.arena;
-		ASSERT(arena->used >= restore_point.used);
+		assert(arena->used >= restore_point.used);
 		arena->used = restore_point.used;
-		ASSERT(arena->restore_point_count > 0);
+		assert(arena->restore_point_count > 0);
 		--arena->restore_point_count;
 	}
 
 	usize remaining_size(Arena* arena, usize Alignment) {
-		return arena->size - (arena->used + memory::get_alignment_offset((usize)arena->base + arena->used, Alignment));
+		return arena->size - (arena->used + get_alignment_offset((usize)arena->base + arena->used, Alignment));
 	}
 
-} // namespace core::memory::arena
+} // namespace Memory
 

@@ -3,8 +3,6 @@
 
 #include <core/core.hpp>
 
-using namespace core::core;
-
 struct RendererMemory;
 
 struct Face {
