@@ -3,7 +3,7 @@
 
 #include <core/core.hpp>
 
-struct RendererMemory;
+struct Renderer_Memory;
 
 struct Face {
 	Vector3i vertex;
@@ -19,6 +19,6 @@ struct Model {
 };
 
 void set_asset_manager_path(wchar* path_to_assets);
-//bool load_model(RendererMemory* memory, Model* model, char* path);
+//bool load_model(Renderer_Memory* memory, Model* model, char* path);
 
 #endif // ASSET_MANAGER_HPP

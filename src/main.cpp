@@ -13,7 +13,7 @@ constexpr usize permanent_memory_size = Memory::kilobytes(4);
 constexpr usize transient_memory_size = 0;
 
 // internal structs
-struct Win32Backbuffer {
+struct Win32_Backbuffer {
 	BITMAPINFO info;
 	void* memory;
 	u32 w; // width
@@ -21,20 +21,20 @@ struct Win32Backbuffer {
 	u32 pitch;
 };
 
-struct Win32State {
+struct Win32_State {
 	wchar exe_path[MAX_PATH * 4];
 	wchar* exe_name;
 };
 
 // static global vars;
-static Win32Backbuffer global_win32_backbuffer;
+static Win32_Backbuffer global_win32_backbuffer;
 static bool global_is_running;
 
 // functions 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
-static void win32_draw(HDC device_context, Win32Backbuffer* buffer);
-static bool win32_init_backbuffer(Win32Backbuffer* buffer, u32 w, u32 h);
-static void win32_get_exe_path(Win32State* state);
+static void win32_draw(HDC device_context, Win32_Backbuffer* buffer);
+static bool win32_init_backbuffer(Win32_Backbuffer* buffer, u32 w, u32 h);
+static void win32_get_exe_path(Win32_State* state);
 
 int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show_code) {
 	(void)prev_, cmd_args;
@@ -76,11 +76,11 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 	ShowWindow(window, show_code);
 
 	// initializing win32 state
-	Win32State win32_state{};
+	Win32_State win32_state{};
 	win32_get_exe_path(&win32_state);
 
 	// initializing renderer memory
-	RendererMemory memory;
+	Renderer_Memory memory;
 	memory.permanent_memory_size = permanent_memory_size;
 	memory.transient_memory_size = transient_memory_size;
 
@@ -98,7 +98,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 	canvas.w = global_win32_backbuffer.w;
 	canvas.h = global_win32_backbuffer.h;
 	canvas.pitch = global_win32_backbuffer.pitch;
-	canvas.origin = Vector2i{ (s32)canvas.w / 2, (s32)canvas.h / 2 };
+	canvas.origin = Vector2i{ (i32)canvas.w / 2, (i32)canvas.h / 2 };
 
 	global_is_running = true;
 	MSG message{};
@@ -142,7 +142,7 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 	return result;
 }
 
-static void win32_draw(HDC device_context, Win32Backbuffer* buffer) {
+static void win32_draw(HDC device_context, Win32_Backbuffer* buffer) {
 	StretchDIBits(
 		device_context,
 		0, 0, (int)buffer->w, (int)buffer->h,	// dest
@@ -152,7 +152,7 @@ static void win32_draw(HDC device_context, Win32Backbuffer* buffer) {
 	);
 }
 
-static bool win32_init_backbuffer(Win32Backbuffer* buffer, u32 w, u32 h) {
+static bool win32_init_backbuffer(Win32_Backbuffer* buffer, u32 w, u32 h) {
 	assert(w > 0 && h > 0 && buffer->memory == nullptr);
 	u32 bpp = 32; // bits per byte
 
@@ -173,7 +173,7 @@ static bool win32_init_backbuffer(Win32Backbuffer* buffer, u32 w, u32 h) {
 	return buffer->memory != nullptr;
 }
 
-static void win32_get_exe_path(Win32State* state) {
+static void win32_get_exe_path(Win32_State* state) {
 	SetLastError(0);
 	DWORD file_path_size = GetModuleFileName(nullptr, state->exe_path, array_count(state->exe_path));
 	assert(file_path_size > 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER);

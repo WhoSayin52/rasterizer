@@ -10,10 +10,10 @@ namespace Memory {
 		usize size;
 		usize used;
 
-		s32 restore_point_count;
+		i32 restore_point_count;
 	};
 
-	struct RestorePoint {
+	struct Restore_Point {
 		Arena* arena;
 		usize used;
 	};
@@ -22,8 +22,8 @@ namespace Memory {
 
 	void* push(Arena* arena, usize size, usize alignment);
 
-	RestorePoint begin_temporary_memory(Arena* arena);
-	void end_temporary_memory(RestorePoint restore_point);
+	Restore_Point begin_temporary(Arena* arena);
+	void end_temporary(Restore_Point restore_point);
 
 	usize remaining_size(Arena* arena, usize Alignment);
 

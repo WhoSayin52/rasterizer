@@ -3,7 +3,7 @@
 
 #include <core/core.hpp>
 
-struct RendererMemory {
+struct Renderer_Memory {
 	void* permanent_memory;
 	usize permanent_memory_size;
 
@@ -19,7 +19,7 @@ struct Canvas {
 	Vector2i origin;
 };
 
-void init_renderer(RendererMemory* memory, wchar* path_to_assets);
+void init_renderer(Renderer_Memory* memory, wchar* path_to_assets);
 
 void render(Canvas* canvas);
 

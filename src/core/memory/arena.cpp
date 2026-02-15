@@ -24,15 +24,15 @@ namespace Memory {
 		return result;
 	}
 
-	RestorePoint begin_temporary_memory(Arena* arena) {
-		RestorePoint restore_point;
+	Restore_Point begin_temporary(Arena* arena) {
+		Restore_Point restore_point;
 		restore_point.arena = arena;
 		restore_point.used = arena->used;
 		++arena->restore_point_count;
 		return restore_point;
 	}
 
-	void end_temporary_memory(RestorePoint restore_point) {
+	void end_temporary(Restore_Point restore_point) {
 		Arena* arena = restore_point.arena;
 		assert(arena->used >= restore_point.used);
 		arena->used = restore_point.used;

@@ -4,9 +4,9 @@
 
 // internal functions
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color);
-static void set_pixel(Canvas* canvas, s32 x, s32 y, Vector3 color);
+static void set_pixel(Canvas* canvas, i32 x, i32 y, Vector3 color);
 
-void init_renderer(RendererMemory* memory, wchar* path_to_assets) {
+void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	set_asset_manager_path(path_to_assets);
 	(void)memory;
 }
@@ -21,10 +21,10 @@ void render(Canvas* canvas) {
 
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {
 	// Bresenhams Algorithm
-	s32 x0 = p0.x;
-	s32 x1 = p1.x;
-	s32 y0 = p0.y;
-	s32 y1 = p1.y;
+	i32 x0 = p0.x;
+	i32 x1 = p1.x;
+	i32 y0 = p0.y;
+	i32 y1 = p1.y;
 
 	bool steep = Math::abs(x0 - x1) < Math::abs(y0 - y1);
 	if (steep) { // if the line is steep, we transpose the image
@@ -36,9 +36,9 @@ static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {
 		Math::swap(&y0, &y1);
 	}
 
-	s32 ierror = 0;
-	s32 y = y0;
-	for (s32 x = x0; x <= x1; ++x) {
+	i32 ierror = 0;
+	i32 y = y0;
+	for (i32 x = x0; x <= x1; ++x) {
 		if (steep) // if transposed, de−transpose
 			set_pixel(canvas, y, x, color);
 		else
@@ -49,7 +49,7 @@ static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {
 	}
 }
 
-static void set_pixel(Canvas* canvas, s32 x, s32 y, Vector3 color) {
+static void set_pixel(Canvas* canvas, i32 x, i32 y, Vector3 color) {
 	u32 cx = x + canvas->origin.x;
 	u32 cy = y + canvas->origin.y;
 
