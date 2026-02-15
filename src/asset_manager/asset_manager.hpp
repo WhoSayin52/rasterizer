@@ -6,16 +6,21 @@
 struct Renderer_Memory;
 
 struct Face {
-	Vector3i vertex;
-	Vector3i normal;
-	Vector3i texture;
+	i64 v_indices[3];
+	i64 t_indices[3];
+	i64 n_indices[3];
 };
 
 struct Model {
 	Vector3* vertices;
-	Vector3* normals;
 	Vector3* textures;
+	Vector3* normals;
 	Face* faces;
+
+	i64 vertices_count;
+	i64 textures_count;
+	i64 normals_count;
+	i64 faces_count;
 };
 
 void set_asset_manager_path(wchar* path_to_assets);

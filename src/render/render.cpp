@@ -65,13 +65,13 @@ static void set_pixel(Canvas* canvas, i32 x, i32 y, Vector3 color) {
 
 	u32 bpp = 4; // byte per pixel
 
-	u8 red = (u8)Math::clamp(color.r * 255.0f, 0.0f, 255.0f);
-	u8 green = (u8)Math::clamp(color.g * 255.0f, 0.0f, 255.0f);
-	u8 blue = (u8)Math::clamp(color.b * 255.0f, 0.0f, 255.0f);
+	u32 red = (u32)Math::clamp(color.r * 255.0f, 0.0f, 255.0f);
+	u32 green = (u32)Math::clamp(color.g * 255.0f, 0.0f, 255.0f);
+	u32 blue = (u32)Math::clamp(color.b * 255.0f, 0.0f, 255.0f);
 
 	u32* pixel = (u32*)((byte*)canvas->memory + cy * canvas->pitch + cx * bpp);
 
-	*pixel = (u32)red << 16 | green << 8 | blue;
+	*pixel = red << 16 | green << 8 | blue;
 }
 
 
