@@ -9,8 +9,8 @@ constexpr wchar window_class_name[] = L"rasterizer";
 constexpr wchar window_title[] = L"Rasterizer by WhoSayin52";
 constexpr u32 win32_backbuffer_width = 960;
 constexpr u32 win32_backbuffer_heigh = 540;
-constexpr usize permanent_memory_size = Memory::kilobytes(4);
-constexpr usize transient_memory_size = 0;
+constexpr usize permanent_memory_size = Memory::megabytes(1);
+constexpr usize transient_memory_size = Memory::megabytes(1);
 
 // internal structs
 struct Win32_Backbuffer {
@@ -80,17 +80,21 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 	win32_get_exe_path(&win32_state);
 
 	// initializing renderer memory
-	Renderer_Memory memory;
-	memory.permanent_memory_size = permanent_memory_size;
-	memory.transient_memory_size = transient_memory_size;
-
-	memory.permanent_memory = VirtualAlloc(
-		0, memory.permanent_memory_size + memory.transient_memory_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
+	void* total_renderer_memory = VirtualAlloc(
+		0, permanent_memory_size + transient_memory_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE
 	);
-	memory.transient_memory = (byte*)memory.permanent_memory + memory.permanent_memory_size;
+	assert(total_renderer_memory != nullptr);
+
+	Renderer_Memory memory;
+	Memory::arena_init(&memory.permanent, permanent_memory_size, total_renderer_memory);
+	Memory::arena_init(&memory.transient, transient_memory_size, (byte*)total_renderer_memory + permanent_memory_size);
 
 	// initializing renderer 
-	//init_renderer(&memory)
+	wchar path_to_assets[MAX_PATH * 4];
+	usize copy_range = win32_state.exe_name - win32_state.exe_path;
+	wcsncpy_s(path_to_assets, array_count(path_to_assets), win32_state.exe_path, copy_range);
+	wcscat_s(path_to_assets, array_count(path_to_assets), L"..\\asset\\");
+	init_renderer(&memory, path_to_assets);
 
 	// initializing vars needed for the main loop
 	Canvas canvas;

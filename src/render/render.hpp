@@ -4,11 +4,8 @@
 #include <core/core.hpp>
 
 struct Renderer_Memory {
-	void* permanent_memory;
-	usize permanent_memory_size;
-
-	void* transient_memory;
-	usize transient_memory_size;
+	Memory::Arena permanent;
+	Memory::Arena transient;
 };
 
 struct Canvas {

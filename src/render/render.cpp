@@ -2,13 +2,17 @@
 
 #include "./../asset_manager/asset_manager.hpp"
 
+// static global vars
+static Model global_diablo;
+
 // internal functions
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color);
 static void set_pixel(Canvas* canvas, i32 x, i32 y, Vector3 color);
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	set_asset_manager_path(path_to_assets);
-	(void)memory;
+
+	load_model(memory, &global_diablo, L"diablo3_pose.obj");
 }
 
 void render(Canvas* canvas) {

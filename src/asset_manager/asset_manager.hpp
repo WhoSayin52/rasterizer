@@ -19,6 +19,6 @@ struct Model {
 };
 
 void set_asset_manager_path(wchar* path_to_assets);
-//bool load_model(Renderer_Memory* memory, Model* model, char* path);
+bool load_model(Renderer_Memory* memory, Model* model, const wchar* file_name);
 
 #endif // ASSET_MANAGER_HPP

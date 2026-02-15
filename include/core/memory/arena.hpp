@@ -10,26 +10,22 @@ namespace Memory {
 		usize size;
 		usize used;
 
-		i32 restore_point_count;
+		i32 snapshot_count;
 	};
 
-	struct Restore_Point {
+	struct Arena_Snapshot {
 		Arena* arena;
 		usize used;
 	};
 
-	void init(Arena* arena, usize size, void* base);
+	void arena_init(Arena* arena, usize size, void* base);
 
-	void* push(Arena* arena, usize size, usize alignment);
+	void* arena_push(Arena* arena, usize size, usize alignment);
 
-	Restore_Point begin_temporary(Arena* arena);
-	void end_temporary(Restore_Point restore_point);
+	Arena_Snapshot arena_create_snapshot(Arena* arena);
+	void arena_restore(Arena_Snapshot arena_snapshot);
 
-	usize remaining_size(Arena* arena, usize Alignment);
-
-	// TODO: extend arena
-	//inline void ZeroSize(memory_index Size, void* Ptr)
-	//inline void SubArena( memory_arena* Result, memory_arena * Arena, memory_index Size, memory_index Alignment = 16)
+	usize arena_remaining_size(Arena* arena, usize Alignment);
 
 } // namespace Memory
 
