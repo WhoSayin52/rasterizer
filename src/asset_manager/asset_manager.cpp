@@ -68,7 +68,6 @@ bool load_model(Renderer_Memory* memory, Model* model, const wchar* file_name) {
 	return result;
 }
 
-
 // internal to Obj helpers
 static char* get_line(char* string, i64 string_count, Stream* stream);
 static i64 tokenize_string(char tokens[][MAX_OBJ_LINE_SIZE], i64 arr_count, char* str);
@@ -201,9 +200,9 @@ static bool extract_data(Model* model, Stream* stream) {
 			char* end3;
 
 			for (i64 i = 0; i < 3; ++i) {
-				curr_f->v_indices[i] = strtoll(tokens[1 + i * 3], &end1, 10);
-				curr_f->t_indices[i] = strtoll(tokens[2 + i * 3], &end2, 10);
-				curr_f->n_indices[i] = strtoll(tokens[3 + i * 3], &end3, 10);
+				curr_f->v_indices[i] = strtoll(tokens[1 + i * 3], &end1, 10) - 1;
+				curr_f->t_indices[i] = strtoll(tokens[2 + i * 3], &end2, 10) - 1;
+				curr_f->n_indices[i] = strtoll(tokens[3 + i * 3], &end3, 10) - 1;
 				if (end1 == tokens[1] || end2 == tokens[2] || end3 == tokens[3]) {
 					return false;
 				}

@@ -112,7 +112,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 			DispatchMessage(&message);
 		}
 
-		render(&canvas);
+		render(&memory.transient, &canvas);
 
 		HDC device_context = GetDC(window);
 		win32_draw(device_context, &global_win32_backbuffer);

@@ -4,29 +4,70 @@
 
 #include <cstdlib>
 
+// internal structs
+struct Basis {
+	Vector3 x;
+	Vector3 y;
+	Vector3 z;
+};
+struct Camera {
+	Vector3 position;
+	Basis basis;
+	f32 fov; // field of view;
+	f32 near; // distance between camera and viewport
+};
+
+struct Entity {
+	Vector3 position;
+	Model model;
+};
+
 // static global vars
-static Model global_diablo;
+static Camera camera = {
+	.position = Vector3{0, 0, 0},
+	.basis = Basis{
+		.x = Vector3{1, 0, 0},
+		.y = Vector3{0, 1, 0},
+		.z = Vector3{0, 0, 1}
+	},
+	.fov = 60.0f, // degrees
+	.near = 1.0f // 1 for simplicity 
+};
+static Entity global_diablo_entity = {
+	.position = Vector3{0, 0, 1000},
+	.model = Model{}
+};
 
 // internal functions
+static void to_camera_space(Camera* camera, Vector3* vertices, i64 vertices_count);
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color);
 static void set_pixel(Canvas* canvas, i32 x, i32 y, Vector3 color);
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	set_asset_manager_path(path_to_assets);
 
-	bool rc = load_model(memory, &global_diablo, L"diablo3_pose.obj");
+	bool rc = load_model(memory, &global_diablo_entity.model, L"diablo3_pose.obj");
 
 	if (rc == false) {
 		exit(1);
 	}
 }
 
-void render(Canvas* canvas) {
+void render(Memory::Arena* arena, Canvas* canvas) {
 
-	draw_line(canvas, { 60, 240 }, { -50, -200 }, { 1.0, 1.0, 1.0 });
-	draw_line(canvas, { 140, 120 }, { -100, -100 }, { 1.0, 1.0, 1.0 });
-	draw_line(canvas, { 0, 200 }, { 0, -200 }, { 1.0, 1.0, 1.0 });
-	draw_line(canvas, { 200, 0 }, { -200, 0 }, { 1.0, 1.0, 1.0 });
+	Memory::Arena_Snapshot arena_snapshot = Memory::arena_create_snapshot(arena);
+
+	i64 vertices_count = global_diablo_entity.model.vertices_count;
+	Vector3* vertices = (Vector3*)Memory::arena_push(arena, vertices_count * sizeof(Vector3), alignof(Vector3));
+
+
+
+	Memory::arena_restore(arena_snapshot);
+}
+
+static void to_camera_space(Camera* camera, Vector3* vertices, i64 vertices_count, Entity* entity){
+	
+	//Vector3* vertex = entity
 }
 
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, Vector3 color) {

@@ -18,6 +18,6 @@ struct Canvas {
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets);
 
-void render(Canvas* canvas);
+void render(Memory::Arena* arena, Canvas* canvas);
 
 #endif // RENDER_HPP
