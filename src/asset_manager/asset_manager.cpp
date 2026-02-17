@@ -4,6 +4,10 @@
 
 #include <Windows.h>
 
+// constants
+constexpr i64 MAX_OBJ_LINE_SIZE = 1024;
+constexpr i64 MODEL_FACES_TOKEN_COUNT = 10;
+
 // global static vars
 static wchar global_path_to_assets[MAX_PATH * 4];
 
@@ -17,6 +21,7 @@ struct Stream {
 };
 static void init_stream(Stream* stream, void* buffer, usize size);
 static bool allocate_model_resources(Renderer_Memory* memory, Model* model, Stream* stream);
+static bool extract_data(Model* model, Stream* stream);
 
 void set_asset_manager_path(wchar* path_to_assets) {
 	wcscpy_s(global_path_to_assets, array_count(global_path_to_assets), path_to_assets);
@@ -52,7 +57,8 @@ bool load_model(Renderer_Memory* memory, Model* model, const wchar* file_name) {
 		init_stream(&stream, file_buffer, bytes_read);
 		result = allocate_model_resources(memory, model, &stream);
 		if (result) {
-			// TODO: extract data from stream into models;
+			stream.curr = stream.start;
+			result = extract_data(model, &stream);
 		}
 	}
 
@@ -65,7 +71,7 @@ bool load_model(Renderer_Memory* memory, Model* model, const wchar* file_name) {
 
 // internal to Obj helpers
 static char* get_line(char* string, i64 string_count, Stream* stream);
-static i64 tokenize_string(char* str);
+static i64 tokenize_string(char tokens[][MAX_OBJ_LINE_SIZE], i64 arr_count, char* str);
 
 static bool allocate_model_resources(Renderer_Memory* memory, Model* model, Stream* stream) {
 
@@ -74,13 +80,19 @@ static bool allocate_model_resources(Renderer_Memory* memory, Model* model, Stre
 	i64 normals_count = 0;
 	i64 faces_count = 0;
 
-	char string[1024] = "\0";
+	char string[MAX_OBJ_LINE_SIZE] = "\0";
 	while (get_line(string, (i64)array_count(string), stream)) {
 
-		i64 token_count = tokenize_string(string);
+		char tokens[MODEL_FACES_TOKEN_COUNT][MAX_OBJ_LINE_SIZE];
+		i64 token_count = tokenize_string(tokens, array_count(tokens), string);
+
+		if (token_count == -1) {
+			return false;
+		}
+
 		if (token_count > 0) {
 
-			char* curr = string;
+			char* curr = tokens[0];
 			while (*curr == '\0') ++curr;
 
 			if (curr[0] == 'v') {
@@ -123,6 +135,82 @@ static bool allocate_model_resources(Renderer_Memory* memory, Model* model, Stre
 		&memory->permanent, sizeof(Face) * vertices_count, alignof(Face)
 	);
 
+	return true;
+}
+
+static bool extract_data(Model* model, Stream* stream) {
+	char string[MAX_OBJ_LINE_SIZE] = "\0";
+
+	Vector3* curr_v = model->vertices;
+	Vector3* curr_t = model->textures;
+	Vector3* curr_n = model->normals;
+	Face* curr_f = model->faces;
+
+	while (get_line(string, sizeof(string), stream)) {
+
+		char tokens[MODEL_FACES_TOKEN_COUNT][MAX_OBJ_LINE_SIZE];
+		i64 token_count = tokenize_string(tokens, array_count(tokens), string);
+
+		if (token_count == -1) {
+			return false;
+		}
+		if (token_count == 0) {
+			continue;
+		}
+
+		if (tokens[0][0] == 'v') {
+			if (token_count != 4) {
+				return false;
+			}
+			char* end1;
+			char* end2;
+			char* end3;
+
+			Vector3 v = {
+				strtof(tokens[1], &end1),
+				strtof(tokens[2], &end2),
+				strtof(tokens[3], &end3)
+			};
+
+			if (end1 == tokens[1] || end2 == tokens[2] || end3 == tokens[3]) {
+				return false;
+			}
+
+			if (tokens[0][1] == '\0') {
+				*curr_v = v;
+				++curr_v;
+			}
+			else if (tokens[0][1] == 't') {
+				*curr_t = v;
+				++curr_t;
+			}
+			else if (tokens[0][1] == 'n') {
+				*curr_n = v;
+				++curr_n;
+			}
+			else {
+				return false;
+			}
+		}
+		else if (tokens[0][0] == 'f') {
+			if (token_count != MODEL_FACES_TOKEN_COUNT || tokens[0][1] != '\0') {
+				return false;
+			}
+			char* end1;
+			char* end2;
+			char* end3;
+
+			for (i64 i = 0; i < 3; ++i) {
+				curr_f->v_indices[i] = strtoll(tokens[1 + i * 3], &end1, 10);
+				curr_f->t_indices[i] = strtoll(tokens[2 + i * 3], &end2, 10);
+				curr_f->n_indices[i] = strtoll(tokens[3 + i * 3], &end3, 10);
+				if (end1 == tokens[1] || end2 == tokens[2] || end3 == tokens[3]) {
+					return false;
+				}
+			}
+			++curr_f;
+		}
+	}
 	return true;
 }
 
@@ -176,24 +264,29 @@ static char* get_line(char* string, i64 string_count, Stream* stream) {
 	return string;
 }
 
-static i64 tokenize_string(char* str) {
+static i64 tokenize_string(char tokens[][MAX_OBJ_LINE_SIZE], i64 arr_count, char* str) {
 	assert(str != nullptr);
 
-	i64 count = 0;
-
 	char* curr = str;
-	char* prev = curr;
-	while (*curr != '\0') {
-		if (*curr == ' ' || *curr == '\t' || *curr == '/') {
-			*curr = '\0';
-			if (*prev != '\0') {
-				++count;
+	i64 count = 0;
+	for (; count < arr_count; ++count) {
+		while (*curr == ' ' || *curr == '\t' || *curr == '/') ++curr;
+
+		if (*curr == '\0') {
+			break;
+		}
+
+		i64 string_index = 0;
+		while (*curr != ' ' && *curr != '\t' && *curr != '/' && *curr != '\0') {
+			tokens[count][string_index] = *curr;
+			++curr;
+			++string_index;
+			if (string_index == sizeof(tokens[count])) {
+				return -1;
 			}
 		}
-		prev = curr;
-		++curr;
+		tokens[count][string_index] = '\0';
 	}
-	if (*prev != '\0') ++count;
 	return count;
 }
 

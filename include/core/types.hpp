@@ -25,7 +25,7 @@ using wchar = wchar_t;
 
 using bool32 = i32;
 
-// memory
+// memory types
 using byte = u8;
 using uptr = uintptr_t;	// unsigned memory management
 using iptr = intptr_t;	// signed memory management 

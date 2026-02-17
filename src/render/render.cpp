@@ -2,6 +2,8 @@
 
 #include "./../asset_manager/asset_manager.hpp"
 
+#include <cstdlib>
+
 // static global vars
 static Model global_diablo;
 
@@ -12,7 +14,11 @@ static void set_pixel(Canvas* canvas, i32 x, i32 y, Vector3 color);
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	set_asset_manager_path(path_to_assets);
 
-	load_model(memory, &global_diablo, L"diablo3_pose.obj");
+	bool rc = load_model(memory, &global_diablo, L"diablo3_pose.obj");
+
+	if (rc == false) {
+		exit(1);
+	}
 }
 
 void render(Canvas* canvas) {
