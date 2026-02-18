@@ -79,8 +79,6 @@ void render(Memory::Arena* arena, Canvas* canvas, i32 model) {
 		break;
 	}
 	}
-
-	//draw_entity(arena, canvas, &global_camera, &global_diablo_entity);
 }
 
 static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity) {
@@ -109,6 +107,7 @@ static void draw_triangles(Canvas* canvas, Camera* camera, Entity* entity, Vecto
 	Vector2i p1, p2, p3;
 	Face* faces = entity->model.faces;
 	i64 faces_count = entity->model.faces_count;
+#pragma omp parallel for
 	for (i64 i = 0; i < faces_count; ++i) {
 		v1 = project_to_viewport(camera, vba[faces[i].v_indices[0]]);
 		v2 = project_to_viewport(camera, vba[faces[i].v_indices[1]]);
@@ -132,6 +131,10 @@ static void draw_triangles(Canvas* canvas, Camera* camera, Entity* entity, Vecto
 }
 
 static Vector3 project_to_viewport(Camera* camera, Vector3 vertex) {
+	// perspective projection 
+	// IMPORTANT ASSUMPTION all vertices are with in view so no clipping or clamping
+	// normalizing vertex which by now is relative to the camera(camera.position is its origin)
+	// and using the unit vector as a line and finding the intersection with the  viewport plane
 	Vector3 vn = Math::normalize(vertex);
 
 	f32 t = camera->near / vn.z;
