@@ -7,8 +7,8 @@
 // static global consts
 constexpr wchar window_class_name[] = L"rasterizer";
 constexpr wchar window_title[] = L"Rasterizer by WhoSayin52";
-constexpr u32 win32_backbuffer_width = 960;
-constexpr u32 win32_backbuffer_heigh = 540;
+constexpr u32 win32_backbuffer_width = 1280; //960;
+constexpr u32 win32_backbuffer_heigh = 720; //540;
 constexpr usize permanent_memory_size = Memory::megabytes(1);
 constexpr usize transient_memory_size = Memory::megabytes(1);
 

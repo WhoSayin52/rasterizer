@@ -6,6 +6,7 @@
 
 // internal consts
 static constexpr Vector3 COLOR_WHITE = { 1.0f, 1.0f, 1.0f };
+static constexpr Vector3 COLOR_RED = { 1.0f, 0.0f, 0.0f };
 
 // internal structs
 struct Camera {
@@ -101,9 +102,11 @@ static void draw_triangles(Canvas* canvas, Camera* camera, Entity* entity, Vecto
 		p3.x = (i32)roundf(v3.x * canvas_viewport_ratio.x);
 		p3.y = (i32)roundf(v3.y * canvas_viewport_ratio.y);
 
-		draw_line(canvas, p1, p2, COLOR_WHITE);
-		draw_line(canvas, p1, p3, COLOR_WHITE);
-		draw_line(canvas, p2, p3, COLOR_WHITE);
+		Vector3 color = COLOR_RED;
+
+		draw_line(canvas, p1, p2, color);
+		draw_line(canvas, p1, p3, color);
+		draw_line(canvas, p2, p3, color);
 	}
 }
 
