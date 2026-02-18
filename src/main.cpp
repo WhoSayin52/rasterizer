@@ -29,6 +29,7 @@ struct Win32_State {
 // static global vars;
 static Win32_Backbuffer global_win32_backbuffer;
 static bool global_is_running;
+static i32 global_model_id = 0;
 
 // functions 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
@@ -98,7 +99,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 	// initializing vars needed for the main loop
 	Canvas canvas;
-	canvas.memory = global_win32_backbuffer.memory;
+	canvas.framebuffer = global_win32_backbuffer.memory;
 	canvas.w = global_win32_backbuffer.w;
 	canvas.h = global_win32_backbuffer.h;
 	canvas.pitch = global_win32_backbuffer.pitch;
@@ -112,7 +113,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 			DispatchMessage(&message);
 		}
 
-		render(&memory.transient, &canvas);
+		render(&memory.transient, &canvas, global_model_id);
 
 		HDC device_context = GetDC(window);
 		win32_draw(device_context, &global_win32_backbuffer);
@@ -134,10 +135,24 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 		PAINTSTRUCT ps;
 		HDC device_context = BeginPaint(window, &ps);
 
+		PatBlt(device_context, 0, 0, global_win32_backbuffer.w, global_win32_backbuffer.h, BLACKNESS);
 		win32_draw(device_context, &global_win32_backbuffer);
 
 		EndPaint(window, &ps);
 		break;
+	}
+	case WM_KEYUP: {
+		if (wparam == VK_SPACE) {
+			++global_model_id;
+			global_model_id = (global_model_id > 1) ? 0 : global_model_id;
+
+			memset(
+				global_win32_backbuffer.memory,
+				0,
+				Memory::align4(global_win32_backbuffer.h * global_win32_backbuffer.pitch)
+			);
+			InvalidateRect(window, nullptr, TRUE);
+		}
 	}
 	default: {
 		result = DefWindowProc(window, message, wparam, lparam);

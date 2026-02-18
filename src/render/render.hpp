@@ -9,7 +9,7 @@ struct Renderer_Memory {
 };
 
 struct Canvas {
-	void* memory;
+	void* framebuffer;
 	u32 w;
 	u32 h;
 	u32 pitch;
@@ -18,6 +18,6 @@ struct Canvas {
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets);
 
-void render(Memory::Arena* arena, Canvas* canvas);
+void render(Memory::Arena* arena, Canvas* canvas, i32 model);
 
 #endif // RENDER_HPP

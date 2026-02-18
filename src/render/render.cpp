@@ -39,6 +39,10 @@ static Entity global_diablo_entity = {
 	.position = Vector3{0, 0, 3.5f},
 	.model = Model{}
 };
+struct Entity global_head_entity = {
+	.position = Vector3{0, 0, 3.5f},
+	.model = Model{}
+};
 
 // internal functions
 static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity);
@@ -52,24 +56,41 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	set_asset_manager_path(path_to_assets);
 
 	bool rc = load_model(memory, &global_diablo_entity.model, L"diablo3_pose.obj");
+	rc |= load_model(memory, &global_head_entity.model, L"head.obj");
 
 	if (rc == false) {
 		exit(1);
 	}
 }
 
-void render(Memory::Arena* arena, Canvas* canvas) {
-	draw_entity(arena, canvas, &global_camera, &global_diablo_entity);
+void render(Memory::Arena* arena, Canvas* canvas, i32 model) {
+
+	switch (model) {
+	case 0: {
+		draw_entity(arena, canvas, &global_camera, &global_diablo_entity);
+		break;
+	}
+	case 1: {
+		draw_entity(arena, canvas, &global_camera, &global_head_entity);
+		break;
+	}
+	default: {
+		draw_line(canvas, { -100, -100 }, { 100, 100 }, COLOR_WHITE);
+		break;
+	}
+	}
+
+	//draw_entity(arena, canvas, &global_camera, &global_diablo_entity);
 }
 
 static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity) {
 
 	Memory::Arena_Snapshot arena_snapshot = Memory::arena_create_snapshot(arena);
 
-	i64 diablo_vba_count = global_diablo_entity.model.vertices_count;
+	i64 diablo_vba_count = entity->model.vertices_count;
 	Vector3* diablo_vba = (Vector3*)Memory::arena_push(arena, diablo_vba_count * sizeof(Vector3), alignof(Vector3));
 
-	local_to_camera_space(camera, &global_diablo_entity, diablo_vba);
+	local_to_camera_space(camera, entity, diablo_vba);
 	draw_triangles(canvas, camera, entity, diablo_vba);
 
 	Memory::arena_restore(arena_snapshot);
@@ -170,7 +191,7 @@ static void set_pixel(Canvas* canvas, i32 x, i32 y, Vector3 color) {
 	assert(
 		cx < canvas->w &&
 		cy < canvas->h &&
-		canvas->memory != nullptr
+		canvas->framebuffer != nullptr
 	);
 
 	u32 bpp = 4; // byte per pixel
@@ -179,7 +200,7 @@ static void set_pixel(Canvas* canvas, i32 x, i32 y, Vector3 color) {
 	u32 green = (u32)Math::clamp(color.g * 255.0f, 0.0f, 255.0f);
 	u32 blue = (u32)Math::clamp(color.b * 255.0f, 0.0f, 255.0f);
 
-	u32* pixel = (u32*)((byte*)canvas->memory + cy * canvas->pitch + cx * bpp);
+	u32* pixel = (u32*)((byte*)canvas->framebuffer + cy * canvas->pitch + cx * bpp);
 
 	*pixel = red << 16 | green << 8 | blue;
 }

@@ -131,7 +131,7 @@ static bool allocate_model_resources(Renderer_Memory* memory, Model* model, Stre
 	);
 	model->faces_count = faces_count;
 	model->faces = (Face*)Memory::arena_push(
-		&memory->permanent, sizeof(Face) * vertices_count, alignof(Face)
+		&memory->permanent, sizeof(Face) * faces_count, alignof(Face)
 	);
 
 	return true;
