@@ -7,7 +7,7 @@
 // internal consts
 static constexpr Vector3 COLOR_WHITE = { 1.0f, 1.0f, 1.0f };
 static constexpr Vector3 COLOR_RED = { 1.0f, 0.0f, 0.0f };
-static f32 CAMERA_SPEED = 100.0f;
+static f32 CAMERA_SPEED = 0.5f;
 
 // internal structs
 struct Camera {
@@ -93,8 +93,8 @@ void render(Memory::Arena* arena, Canvas* canvas, Key key, f32 delta_time) {
 		break;
 	}
 	case Key::P: {
-		projection_type == Projection::ORTHOGRAPHIC ?
-			projection_type = Projection::PERSPECTIVE : projection_type = Projection::ORTHOGRAPHIC;
+		projection_type == Projection::PERSPECTIVE ?
+			projection_type = Projection::ORTHOGRAPHIC : projection_type = Projection::PERSPECTIVE;
 		break;
 	}
 	default: {
@@ -272,22 +272,22 @@ static u32 to_u32_color(Vector3 rbg) {
 }
 
 static void camera_process(Camera* camera, Key key, f32 delta_time) {
-
+	(void)delta_time;
 	switch (key) {
 	case Key::W: {
-		camera->position += camera->z_axis * (CAMERA_SPEED * delta_time);
+		camera->position += camera->z_axis * CAMERA_SPEED;
 		break;
 	}
 	case Key::S: {
-		camera->position -= camera->z_axis * (CAMERA_SPEED * delta_time);
+		camera->position -= camera->z_axis * CAMERA_SPEED;
 		break;
 	}
 	case Key::A: {
-		camera->position -= camera->x_axis * (CAMERA_SPEED * delta_time);
+		camera->position -= camera->x_axis * CAMERA_SPEED;
 		break;
 	}
 	case Key::D: {
-		camera->position += camera->x_axis * (CAMERA_SPEED * delta_time);
+		camera->position += camera->x_axis * CAMERA_SPEED;
 		break;
 	}
 	}
