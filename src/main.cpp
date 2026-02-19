@@ -196,6 +196,7 @@ static void win32_get_exe_path(Win32_State* state) {
 	SetLastError(0);
 	DWORD file_path_size = GetModuleFileName(nullptr, state->exe_path, array_count(state->exe_path));
 	assert(file_path_size > 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER);
+	(void)file_path_size;
 	state->exe_name = state->exe_path;
 	for (wchar* scan = state->exe_path; *scan; ++scan) {
 		if (*scan == L'\\') {

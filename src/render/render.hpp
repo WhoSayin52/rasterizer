@@ -3,6 +3,11 @@
 
 #include <core/core.hpp>
 
+enum class Projection {
+	PERSPECTIVE,
+	ORTHOGRAPHIC
+};
+
 struct Renderer_Memory {
 	Memory::Arena permanent;
 	Memory::Arena transient;
