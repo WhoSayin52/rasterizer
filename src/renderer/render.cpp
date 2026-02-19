@@ -7,6 +7,7 @@
 // internal consts
 static constexpr Vector3 COLOR_WHITE = { 1.0f, 1.0f, 1.0f };
 static constexpr Vector3 COLOR_RED = { 1.0f, 0.0f, 0.0f };
+static f32 CAMERA_SPEED = 100.0f;
 
 // internal structs
 struct Camera {
@@ -25,6 +26,7 @@ struct Camera {
 struct Entity {
 	Vector3 position;
 	Model model;
+	f32 scale;
 };
 
 // static global vars
@@ -39,17 +41,17 @@ static Camera global_camera = {
 	.near = 0.1f,
 	.far = 1000.0f,
 	.aspect_ratio = 16.0f / 9.0f,
-	.viewport{
-
-	}
+	.viewport = {}
 };
 static Entity global_diablo_entity = {
 	.position = Vector3{0, 0, 3.5f},
-	.model = Model{}
+	.model = Model{},
+	.scale = 1.0f
 };
 struct Entity global_head_entity = {
 	.position = Vector3{0, 0, 3.5f},
-	.model = Model{}
+	.model = Model{},
+	.scale = 1.0f
 };
 
 // internal functions
@@ -60,6 +62,8 @@ static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex,
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color);
 static void set_pixel(Canvas* canvas, i32 x, i32 y, u32 color);
 static u32 to_u32_color(Vector3 rbg);
+
+static void camera_process(Camera* camera, Key key, f32 delta_time);
 
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
@@ -73,24 +77,32 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	}
 }
 
-void render(Memory::Arena* arena, Canvas* canvas, i32 model) {
+void render(Memory::Arena* arena, Canvas* canvas, Key key, f32 delta_time) {
 
-	Projection projection_type = Projection::ORTHOGRAPHIC;
+	static Entity* entity = &global_diablo_entity;
+	static Projection projection_type = Projection::PERSPECTIVE;
 
-	switch (model) {
-	case 0: {
-		draw_entity(arena, canvas, &global_camera, &global_diablo_entity, projection_type);
+	if (key != Key::NONE) {
+		camera_process(&global_camera, key, delta_time);
+	}
+
+	switch (key) {
+	case Key::SPACE: {
+		entity == &global_diablo_entity ?
+			entity = &global_head_entity : entity = &global_diablo_entity;
 		break;
 	}
-	case 1: {
-		draw_entity(arena, canvas, &global_camera, &global_head_entity, projection_type);
+	case Key::P: {
+		projection_type == Projection::ORTHOGRAPHIC ?
+			projection_type = Projection::PERSPECTIVE : projection_type = Projection::ORTHOGRAPHIC;
 		break;
 	}
 	default: {
-		draw_line(canvas, { -100, -100 }, { 100, 100 }, to_u32_color(COLOR_WHITE));
 		break;
 	}
 	}
+
+	draw_entity(arena, canvas, &global_camera, entity, projection_type);
 }
 
 static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Projection PROJ_TYPE) {
@@ -157,7 +169,7 @@ static void draw_faces(Canvas* canvas, Entity* entity, Vector3* vba) {
 
 static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba, Projection PROJ_TYPE) {
 
-	f32 scale = PROJ_TYPE == Projection::ORTHOGRAPHIC ? 0.03f : 1.0f;
+	f32 scale = PROJ_TYPE == Projection::ORTHOGRAPHIC ? entity->scale * 0.03f : entity->scale;
 
 	Vector3 camera_relative_pos = entity->position - camera->position;
 
@@ -257,6 +269,28 @@ static u32 to_u32_color(Vector3 rbg) {
 	u32 blue = (u32)Math::clamp(rbg.b * 255.0f, 0.0f, 255.0f);
 
 	return red << 16 | green << 8 | blue;
+}
+
+static void camera_process(Camera* camera, Key key, f32 delta_time) {
+
+	switch (key) {
+	case Key::W: {
+		camera->position += camera->z_axis * (CAMERA_SPEED * delta_time);
+		break;
+	}
+	case Key::S: {
+		camera->position -= camera->z_axis * (CAMERA_SPEED * delta_time);
+		break;
+	}
+	case Key::A: {
+		camera->position -= camera->x_axis * (CAMERA_SPEED * delta_time);
+		break;
+	}
+	case Key::D: {
+		camera->position += camera->x_axis * (CAMERA_SPEED * delta_time);
+		break;
+	}
+	}
 }
 
 /*

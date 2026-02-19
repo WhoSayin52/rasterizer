@@ -1,5 +1,5 @@
 
-#include "./render/render.hpp"
+#include "./renderer/render.hpp"
 
 #include <core/core.hpp>
 #include <Windows.h>
@@ -29,7 +29,7 @@ struct Win32_State {
 // static global vars;
 static Win32_Backbuffer global_win32_backbuffer;
 static bool global_is_running;
-static i32 global_model_id = 0;
+static Key global_keypress = Key::NONE;
 
 // functions 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
@@ -98,6 +98,11 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 	init_renderer(&memory, path_to_assets);
 
 	// initializing vars needed for the main loop
+	LARGE_INTEGER frequency;
+	QueryPerformanceFrequency(&frequency);
+	LARGE_INTEGER previous;
+	QueryPerformanceCounter(&previous);
+
 	Canvas canvas;
 	canvas.framebuffer = global_win32_backbuffer.memory;
 	canvas.w = global_win32_backbuffer.w;
@@ -113,11 +118,26 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 			DispatchMessage(&message);
 		}
 
-		render(&memory.transient, &canvas, global_model_id);
+		LARGE_INTEGER current;
+		QueryPerformanceCounter(&current);
+
+		f32 delta_time = (f32)(current.QuadPart - previous.QuadPart)
+			/ (f32)frequency.QuadPart;
+
+		previous = current;
+
+		render(&memory.transient, &canvas, global_keypress, delta_time);
 
 		HDC device_context = GetDC(window);
 		win32_draw(device_context, &global_win32_backbuffer);
 		ReleaseDC(window, device_context);
+
+		memset(
+			global_win32_backbuffer.memory,
+			0,
+			Memory::align4(global_win32_backbuffer.h * global_win32_backbuffer.pitch)
+		);
+		global_keypress = Key::NONE;
 	}
 
 	return 0;
@@ -125,11 +145,10 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
 
-	LRESULT result{};
 	switch (message) {
 	case WM_CLOSE: {
 		global_is_running = false;
-		break;
+		return 0;
 	}
 	case WM_PAINT: {
 		PAINTSTRUCT ps;
@@ -139,26 +158,45 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 		win32_draw(device_context, &global_win32_backbuffer);
 
 		EndPaint(window, &ps);
-		break;
+		return 0;
 	}
 	case WM_KEYUP: {
-		if (wparam == VK_SPACE) {
-			++global_model_id;
-			global_model_id = (global_model_id > 1) ? 0 : global_model_id;
 
-			memset(
-				global_win32_backbuffer.memory,
-				0,
-				Memory::align4(global_win32_backbuffer.h * global_win32_backbuffer.pitch)
-			);
-			InvalidateRect(window, nullptr, TRUE);
+		switch (wparam) {
+		case VK_SPACE: {
+			global_keypress = Key::SPACE;
+			break;
 		}
+		case 'P': {
+			global_keypress = Key::P;
+			break;
+		}
+		case 'W': {
+			global_keypress = Key::W;
+			break;
+		}
+		case 'A': {
+			global_keypress = Key::A;
+			break;
+		}
+		case 'S': {
+			global_keypress = Key::S;
+			break;
+		}
+		case 'D': {
+			global_keypress = Key::D;
+			break;
+		}
+		default: {
+			global_keypress = Key::NONE;
+		}
+		}
+		return DefWindowProc(window, message, wparam, lparam);
 	}
 	default: {
-		result = DefWindowProc(window, message, wparam, lparam);
+		return DefWindowProc(window, message, wparam, lparam);
 	}
 	}
-	return result;
 }
 
 static void win32_draw(HDC device_context, Win32_Backbuffer* buffer) {

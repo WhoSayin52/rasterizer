@@ -8,6 +8,16 @@ enum class Projection {
 	ORTHOGRAPHIC
 };
 
+enum class Key {
+	NONE,
+	SPACE,
+	P,
+	W,
+	A,
+	S,
+	D,
+};
+
 struct Renderer_Memory {
 	Memory::Arena permanent;
 	Memory::Arena transient;
@@ -23,6 +33,6 @@ struct Canvas {
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets);
 
-void render(Memory::Arena* arena, Canvas* canvas, i32 model);
+void render(Memory::Arena* arena, Canvas* canvas, Key key, f32 delta_time);
 
 #endif // RENDER_HPP
