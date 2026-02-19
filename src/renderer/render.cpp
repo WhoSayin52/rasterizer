@@ -7,7 +7,7 @@
 // internal consts
 static constexpr Vector3 COLOR_WHITE = { 1.0f, 1.0f, 1.0f };
 static constexpr Vector3 COLOR_RED = { 1.0f, 0.0f, 0.0f };
-static f32 CAMERA_SPEED = 0.5f;
+static f32 CAMERA_SPEED = 10.0f;
 
 // internal structs
 struct Camera {
@@ -63,7 +63,7 @@ static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color);
 static void set_pixel(Canvas* canvas, i32 x, i32 y, u32 color);
 static u32 to_u32_color(Vector3 rbg);
 
-static void camera_process(Camera* camera, Key key, f32 delta_time);
+static void camera_process(Camera* camera, Event event, f32 delta_time);
 
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
@@ -77,16 +77,16 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	}
 }
 
-void render(Memory::Arena* arena, Canvas* canvas, Key key, f32 delta_time) {
+void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 
 	static Entity* entity = &global_diablo_entity;
 	static Projection projection_type = Projection::PERSPECTIVE;
 
-	if (key != Key::NONE) {
-		camera_process(&global_camera, key, delta_time);
+	if (event.key != Key::NONE) {
+		camera_process(&global_camera, event, delta_time);
 	}
 
-	switch (key) {
+	switch (event.key) {
 	case Key::SPACE: {
 		entity == &global_diablo_entity ?
 			entity = &global_head_entity : entity = &global_diablo_entity;
@@ -271,23 +271,24 @@ static u32 to_u32_color(Vector3 rbg) {
 	return red << 16 | green << 8 | blue;
 }
 
-static void camera_process(Camera* camera, Key key, f32 delta_time) {
-	(void)delta_time;
+static void camera_process(Camera* camera, Event event, f32 delta_time) {
+	Key key = event.key;
+
 	switch (key) {
 	case Key::W: {
-		camera->position += camera->z_axis * CAMERA_SPEED;
+		camera->position += camera->z_axis * (CAMERA_SPEED * delta_time);
 		break;
 	}
 	case Key::S: {
-		camera->position -= camera->z_axis * CAMERA_SPEED;
+		camera->position -= camera->z_axis * (CAMERA_SPEED * delta_time);
 		break;
 	}
 	case Key::A: {
-		camera->position -= camera->x_axis * CAMERA_SPEED;
+		camera->position -= camera->x_axis * (CAMERA_SPEED * delta_time);
 		break;
 	}
 	case Key::D: {
-		camera->position += camera->x_axis * CAMERA_SPEED;
+		camera->position += camera->x_axis * (CAMERA_SPEED * delta_time);
 		break;
 	}
 	}

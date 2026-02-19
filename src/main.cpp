@@ -29,7 +29,10 @@ struct Win32_State {
 // static global vars;
 static Win32_Backbuffer global_win32_backbuffer;
 static bool global_is_running;
-static Key global_keypress = Key::NONE;
+static Event global_event = {
+	.key = Key::NONE,
+	.mouse_position = Vector2{}
+};
 
 // functions 
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
@@ -126,7 +129,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 		previous = current;
 
-		render(&memory.transient, &canvas, global_keypress, delta_time);
+		render(&memory.transient, &canvas, global_event, delta_time);
 
 		HDC device_context = GetDC(window);
 		win32_draw(device_context, &global_win32_backbuffer);
@@ -137,7 +140,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 			0,
 			Memory::align4(global_win32_backbuffer.h * global_win32_backbuffer.pitch)
 		);
-		global_keypress = Key::NONE;
+		global_event.key = Key::NONE;
 	}
 
 	return 0;
@@ -160,35 +163,35 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 		EndPaint(window, &ps);
 		return 0;
 	}
-	case WM_KEYUP: {
+	case WM_KEYDOWN: {
 
 		switch (wparam) {
 		case VK_SPACE: {
-			global_keypress = Key::SPACE;
+			global_event.key = Key::SPACE;
 			break;
 		}
 		case 'P': {
-			global_keypress = Key::P;
+			global_event.key = Key::P;
 			break;
 		}
 		case 'W': {
-			global_keypress = Key::W;
+			global_event.key = Key::W;
 			break;
 		}
 		case 'A': {
-			global_keypress = Key::A;
+			global_event.key = Key::A;
 			break;
 		}
 		case 'S': {
-			global_keypress = Key::S;
+			global_event.key = Key::S;
 			break;
 		}
 		case 'D': {
-			global_keypress = Key::D;
+			global_event.key = Key::D;
 			break;
 		}
 		default: {
-			global_keypress = Key::NONE;
+			global_event.key = Key::NONE;
 		}
 		}
 		return DefWindowProc(window, message, wparam, lparam);

@@ -18,6 +18,11 @@ enum class Key {
 	D,
 };
 
+struct Event {
+	Key key;
+	Vector2 mouse_position;
+};
+
 struct Renderer_Memory {
 	Memory::Arena permanent;
 	Memory::Arena transient;
@@ -33,6 +38,6 @@ struct Canvas {
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets);
 
-void render(Memory::Arena* arena, Canvas* canvas, Key key, f32 delta_time);
+void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time);
 
 #endif // RENDER_HPP
