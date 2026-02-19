@@ -145,10 +145,15 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 	return 0;
 }
-
+#include <iostream>
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
 
 	switch (message) {
+	case WM_CREATE: {
+		global_event.mouse_position.x = 0;
+		global_event.mouse_position.y = 0;
+		return 0;
+	}
 	case WM_CLOSE: {
 		global_is_running = false;
 		return 0;
@@ -162,6 +167,16 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 
 		EndPaint(window, &ps);
 		return 0;
+	}
+	case WM_MOUSEMOVE: {
+		POINT point;
+		GetCursorPos(&point);
+		global_event.mouse_position.x = (f32)point.x;
+		global_event.mouse_position.y = (f32)point.y;
+
+		std::cout << point.x << ", " << point.y << '\n';
+
+		return DefWindowProc(window, message, wparam, lparam);
 	}
 	case WM_KEYDOWN: {
 

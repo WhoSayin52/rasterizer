@@ -118,9 +118,6 @@ static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, En
 	transformation_pipeline(canvas, camera, entity, vba, PROJ_TYPE);
 	draw_faces(canvas, entity, vba);
 
-	//local_to_camera_space(camera, entity, vba);
-	//draw_triangles(canvas, camera, entity, vba);
-
 	Memory::arena_restore(arena_snapshot);
 }
 
@@ -272,8 +269,8 @@ static u32 to_u32_color(Vector3 rbg) {
 }
 
 static void camera_process(Camera* camera, Event event, f32 delta_time) {
-	Key key = event.key;
 
+	Key key = event.key;
 	switch (key) {
 	case Key::W: {
 		camera->position += camera->z_axis * (CAMERA_SPEED * delta_time);
@@ -292,6 +289,12 @@ static void camera_process(Camera* camera, Event event, f32 delta_time) {
 		break;
 	}
 	}
+
+	static Vector2 old_mouse_position = event.mouse_position;
+
+	Vector2 direction = event.mouse_position - old_mouse_position;
+
+	old_mouse_position = event.mouse_position;
 }
 
 /*
