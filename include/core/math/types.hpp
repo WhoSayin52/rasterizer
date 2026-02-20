@@ -9,6 +9,10 @@ namespace Math {
 	constexpr f64 PI64 = 3.141592653589793;
 	constexpr f32 PI32 = 3.1415927f;
 
+	// trigonometry 
+	constexpr f32 to_radians(f32 degrees) { return degrees * PI32 / 180.0f; }
+	constexpr f32 to_degrees(f32 radians) { return radians * 180.0f / PI32; }
+
 	// utility functions
 	template <typename T>
 	T minimum(T a, T b) {

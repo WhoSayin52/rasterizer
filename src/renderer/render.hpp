@@ -11,6 +11,7 @@ enum class Projection {
 enum class Key {
 	NONE,
 	SPACE,
+	CONTROL,
 	P,
 	W,
 	A,

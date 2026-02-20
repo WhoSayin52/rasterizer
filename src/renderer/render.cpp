@@ -8,6 +8,7 @@
 static constexpr Vector3 COLOR_WHITE = { 1.0f, 1.0f, 1.0f };
 static constexpr Vector3 COLOR_RED = { 1.0f, 0.0f, 0.0f };
 static f32 CAMERA_SPEED = 10.0f;
+static f32 CAMERA_ROTATION_SPEED = 500.0f;
 
 // internal structs
 struct Camera {
@@ -16,6 +17,10 @@ struct Camera {
 	Vector3 x_axis;
 	Vector3 y_axis;
 	Vector3 z_axis;
+	Vector3 inv_x_axis; // inv == inverse used to change vertex basis
+	Vector3 inv_y_axis;
+	Vector3 inv_z_axis;
+
 	f32 fov; // field of view in radians;
 	f32 near; // distance between camera and viewport
 	f32 far;
@@ -36,6 +41,9 @@ static Camera global_camera = {
 	.x_axis = Vector3{1, 0, 0},
 	.y_axis = Vector3{0, 1, 0},
 	.z_axis = Vector3{0, 0, 1},
+	.inv_x_axis = Vector3{1, 0, 0},
+	.inv_y_axis = Vector3{0, 1, 0},
+	.inv_z_axis = Vector3{0, 0, 1},
 
 	.fov = 60.0f * Math::PI32 / 180.0f, // radians
 	.near = 0.1f,
@@ -82,9 +90,7 @@ void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 	static Entity* entity = &global_diablo_entity;
 	static Projection projection_type = Projection::PERSPECTIVE;
 
-	if (event.key != Key::NONE) {
-		camera_process(&global_camera, event, delta_time);
-	}
+	camera_process(&global_camera, event, delta_time);
 
 	switch (event.key) {
 	case Key::SPACE: {
@@ -166,7 +172,7 @@ static void draw_faces(Canvas* canvas, Entity* entity, Vector3* vba) {
 
 static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba, Projection PROJ_TYPE) {
 
-	f32 scale = PROJ_TYPE == Projection::ORTHOGRAPHIC ? entity->scale * 0.03f : entity->scale;
+	f32 scale = PROJ_TYPE == Projection::ORTHOGRAPHIC ? entity->scale * 0.003f : entity->scale;
 
 	Vector3 camera_relative_pos = entity->position - camera->position;
 
@@ -175,7 +181,7 @@ static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* enti
 #pragma omp parallel for
 	for (i64 i = 0; i < vba_count; ++i) {
 		vba[i] = vertices[i] * scale + camera_relative_pos;
-		vba[i] = vba[i].x * camera->x_axis + vba[i].y * camera->y_axis + vba[i].z * camera->z_axis;
+		vba[i] = vba[i].x * camera->inv_x_axis + vba[i].y * camera->inv_y_axis + vba[i].z * camera->inv_z_axis;
 		vba[i] = project_to_screen(canvas, camera, vba[i], PROJ_TYPE);
 	}
 }
@@ -267,7 +273,7 @@ static u32 to_u32_color(Vector3 rbg) {
 
 	return red << 16 | green << 8 | blue;
 }
-
+#include <iostream>
 static void camera_process(Camera* camera, Event event, f32 delta_time) {
 
 	Key key = event.key;
@@ -292,9 +298,42 @@ static void camera_process(Camera* camera, Event event, f32 delta_time) {
 
 	static Vector2 old_mouse_position = event.mouse_position;
 
-	Vector2 direction = event.mouse_position - old_mouse_position;
+	if (key != Key::CONTROL) {
+		return;
+	}
 
+	Vector2 mouse_direction = event.mouse_position - old_mouse_position;
 	old_mouse_position = event.mouse_position;
+
+	if (mouse_direction.x != 0 || mouse_direction.y != 0) {
+		mouse_direction = Math::normalize(mouse_direction);
+	}
+
+	Vector2 mouse_velocity = mouse_direction * (CAMERA_ROTATION_SPEED * delta_time);
+	camera->rotation.y += mouse_velocity.x;
+	camera->rotation.x += mouse_velocity.y;
+	std::cout << camera->rotation.y << std::endl;
+	camera->rotation.x = Math::clamp(camera->rotation.x, -89.0f, 89.0f);
+
+	f32 x_rad = Math::to_radians(camera->rotation.x);
+	f32 y_rad = Math::to_radians(camera->rotation.y);
+
+	camera->z_axis.x = sinf(y_rad) * cosf(x_rad);
+	camera->z_axis.y = -sinf(x_rad);
+	camera->z_axis.z = cosf(y_rad) * cosf(x_rad);
+	camera->z_axis = Math::normalize(camera->z_axis);
+
+	Vector3 up_vector = { 0, 1, 0 };
+	camera->x_axis = Math::cross(up_vector, camera->z_axis);
+	camera->x_axis = Math::normalize(camera->x_axis);
+
+	camera->y_axis = Math::cross(camera->z_axis, camera->x_axis);
+	camera->y_axis = Math::normalize(camera->y_axis);
+
+	// since basis are orthonormal the inverse is the transpose
+	camera->inv_x_axis = Vector3{ camera->x_axis.x, camera->y_axis.x, camera->z_axis.x };
+	camera->inv_y_axis = Vector3{ camera->x_axis.y, camera->y_axis.y, camera->z_axis.y };
+	camera->inv_z_axis = Vector3{ camera->x_axis.z, camera->y_axis.z, camera->z_axis.z };
 }
 
 /*

@@ -145,7 +145,7 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 
 	return 0;
 }
-#include <iostream>
+
 static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
 
 	switch (message) {
@@ -174,8 +174,6 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 		global_event.mouse_position.x = (f32)point.x;
 		global_event.mouse_position.y = (f32)point.y;
 
-		std::cout << point.x << ", " << point.y << '\n';
-
 		return DefWindowProc(window, message, wparam, lparam);
 	}
 	case WM_KEYDOWN: {
@@ -183,6 +181,10 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 		switch (wparam) {
 		case VK_SPACE: {
 			global_event.key = Key::SPACE;
+			break;
+		}
+		case VK_CONTROL: {
+			global_event.key = Key::CONTROL;
 			break;
 		}
 		case 'P': {
