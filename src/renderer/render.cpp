@@ -8,7 +8,7 @@
 static constexpr Vector3 COLOR_WHITE = { 1.0f, 1.0f, 1.0f };
 static constexpr Vector3 COLOR_RED = { 1.0f, 0.0f, 0.0f };
 static f32 CAMERA_SPEED = 10.0f;
-static f32 CAMERA_ROTATION_SPEED = 500.0f;
+static f32 CAMERA_ROTATION_SPEED = 100.0f;
 
 // internal structs
 struct Camera {
@@ -69,7 +69,8 @@ static void draw_entity(
 static void draw_faces(Canvas* canvas, Entity* entity, Vector3* vba, Draw_Type draw_type);
 static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba, Projection proj_type);
 static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex, Projection proj_type);
-static void draw_filled_triangle(Canvas* canvas, Vector2 p1, Vector2 p2, Vector2 p3, u32 color);
+static void draw_filled_triangle(Canvas* canvas, Vector2i p1, Vector2i p2, Vector2i p3, u32 color);
+static i32 signed_triangle_area2(Vector2i p1, Vector2i p2, Vector2i p3);
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color);
 static void set_pixel(Canvas* canvas, i32 x, i32 y, u32 color);
 static u32 to_u32_color(Vector3 rbg);
@@ -90,7 +91,7 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 }
 
 void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
-
+	
 	static Entity* entity = &global_diablo_entity;
 	static Draw_Type draw_type = Draw_Type::FILLED;
 	static Projection projection_type = Projection::PERSPECTIVE;
@@ -141,6 +142,7 @@ static void draw_faces(Canvas* canvas, Entity* entity, Vector3* vba, Draw_Type d
 	i64 faces_count = entity->model.faces_count;
 	Face* faces = entity->model.faces;
 	Vector3 v1, v2, v3;
+	Vector2i p1, p2, p3;
 #pragma omp parallel for
 	for (i64 i = 0; i < faces_count; ++i) {
 		v1 = vba[faces[i].v_indices[0]];
@@ -159,30 +161,19 @@ static void draw_faces(Canvas* canvas, Entity* entity, Vector3* vba, Draw_Type d
 			v3.y >= -(f32)canvas->origin.y && v3.y < (f32)canvas->origin.y - 1;
 
 		if (is_valid_face) {
+			p1.x = (i32)roundf(v1.x);
+			p1.y = (i32)roundf(v1.y);
+
+			p2.x = (i32)roundf(v2.x);
+			p2.y = (i32)roundf(v2.y);
+
+			p3.x = (i32)roundf(v3.x);
+			p3.y = (i32)roundf(v3.y);
+
 			if (draw_type == Draw_Type::FILLED) {
-				Vector2 p1, p2, p3;
-				p1.x = roundf(v1.x);
-				p1.y = roundf(v1.y);
-
-				p2.x = roundf(v2.x);
-				p2.y = roundf(v2.y);
-
-				p3.x = roundf(v3.x);
-				p3.y = roundf(v3.y);
-
 				draw_filled_triangle(canvas, p1, p2, p3, (u32)(i * i));
 			}
 			else {
-				Vector2i p1, p2, p3;
-				p1.x = (i32)roundf(v1.x);
-				p1.y = (i32)roundf(v1.y);
-
-				p2.x = (i32)roundf(v2.x);
-				p2.y = (i32)roundf(v2.y);
-
-				p3.x = (i32)roundf(v3.x);
-				p3.y = (i32)roundf(v3.y);
-
 				draw_line(canvas, p1, p2, to_u32_color(COLOR_RED));
 				draw_line(canvas, p1, p3, to_u32_color(COLOR_RED));
 				draw_line(canvas, p2, p3, to_u32_color(COLOR_RED));
@@ -245,52 +236,34 @@ static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex,
 	return Vector3{ x, y, z };
 }
 
-static void draw_filled_triangle(Canvas* canvas, Vector2 p1, Vector2 p2, Vector2 p3, u32 color) {
-	Vector2 top_point = p1;
-	Vector2 middle_point = p2;
-	Vector2 bottom_point = p3;
+static void draw_filled_triangle(Canvas* canvas, Vector2i p1, Vector2i p2, Vector2i p3, u32 color) {
+	// calculating the min and max point of the bounding box
+	i32 min_x = Math::minimum(p1.x, Math::minimum(p2.x, p3.x));
+	i32 min_y = Math::minimum(p1.y, Math::minimum(p2.y, p3.y));
+	i32 max_x = Math::maximum(p1.x, Math::maximum(p2.x, p3.x));
+	i32 max_y = Math::maximum(p1.y, Math::maximum(p2.y, p3.y));
 
-	if (top_point.y < middle_point.y) {
-		Math::swap(&top_point, &middle_point);
+	i32 total_area2 = signed_triangle_area2(p1, p2, p3);
+
+#pragma omp parallel for
+	for (i32 y = min_y; y <= max_y; ++y) {
+		for (i32 x = min_x; x <= max_x; ++x) {
+			i32 a = signed_triangle_area2(Vector2i{ x, y }, p2, p3);
+			i32 b = signed_triangle_area2(Vector2i{ x, y }, p3, p1);
+			i32 c = signed_triangle_area2(Vector2i{ x, y }, p1, p2);
+
+			bool is_valid_pixel =
+				(total_area2 < 0 && a < 0 && b < 0 && c < 0) ||
+				(total_area2 > 0 && a > 0 && b > 0 && c > 0);
+			if (is_valid_pixel) {
+				set_pixel(canvas, x, y, color);
+			}
+		}
 	}
-	if (top_point.y < bottom_point.y) {
-		Math::swap(&top_point, &bottom_point);
-	}
-	if (middle_point.y < bottom_point.y) {
-		Math::swap(&middle_point, &bottom_point);
-	}
+}
 
-
-	f32 divisor = bottom_point.y - top_point.y;
-	f32 top_to_bottom_slope = (divisor != 0) ? (bottom_point.x - top_point.x) / divisor : 0;
-	f32 top_to_bottom_b = top_point.x - top_to_bottom_slope * top_point.y;
-
-	divisor = middle_point.y - top_point.y;
-	f32 top_to_middle_slope = (divisor != 0) ? (middle_point.x - top_point.x) / divisor : 0;
-	f32 top_to_middle_b = top_point.x - top_to_middle_slope * top_point.y;
-
-	divisor = bottom_point.y - middle_point.y;
-	f32 middle_to_bottom_slope = (divisor != 0) ? (bottom_point.x - middle_point.x) / divisor : 0;
-	f32 middle_to_bottom_b = middle_point.x - middle_to_bottom_slope * middle_point.y;
-
-	// going from top to mid using top_to_bottom_line on one side and top_to_middle_line on the other
-	i32 y = (i32)top_point.y;
-	while (y >= middle_point.y) {
-		i32 x1 = (i32)roundf(y * top_to_bottom_slope + top_to_bottom_b);
-		i32 x2 = (i32)roundf(y * top_to_middle_slope + top_to_middle_b);
-
-		draw_line(canvas, Vector2i{ x1, y }, Vector2i{ x2, y }, color);
-		--y;
-	}
-
-	// same as above but now using the middle_to_bottom_line on one side and top_to_middle_line on the other
-	while (y >= bottom_point.y) {
-		i32 x1 = (i32)roundf(y * top_to_bottom_slope + top_to_bottom_b);
-		i32 x2 = (i32)roundf(y * middle_to_bottom_slope + middle_to_bottom_b);
-
-		draw_line(canvas, Vector2i{ x1, y }, Vector2i{ x2, y }, color);
-		--y;
-	}
+static i32 signed_triangle_area2(Vector2i p1, Vector2i p2, Vector2i p3) {
+	return (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
 }
 
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color) {
