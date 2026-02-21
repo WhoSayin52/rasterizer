@@ -63,13 +63,17 @@ struct Entity global_head_entity = {
 };
 
 // internal functions
-static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Projection PROJ_TYPE);
-static void draw_faces(Canvas* canvas, Entity* entity, Vector3* vba);
-static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba, Projection PROJ_TYPE);
-static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex, Projection PROJ_TYPE);
+static void draw_entity(
+	Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Draw_Type draw_type, Projection proj_type
+);
+static void draw_faces(Canvas* canvas, Entity* entity, Vector3* vba, Draw_Type draw_type);
+static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba, Projection proj_type);
+static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex, Projection proj_type);
+static void draw_filled_triangle(Canvas* canvas, Vector2 p1, Vector2 p2, Vector2 p3, u32 color);
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color);
 static void set_pixel(Canvas* canvas, i32 x, i32 y, u32 color);
 static u32 to_u32_color(Vector3 rbg);
+static u32 get_rand_color();
 
 static void camera_process(Camera* camera, Event event, f32 delta_time);
 
@@ -88,19 +92,23 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 
 	static Entity* entity = &global_diablo_entity;
+	static Draw_Type draw_type = Draw_Type::FILLED;
 	static Projection projection_type = Projection::PERSPECTIVE;
 
 	camera_process(&global_camera, event, delta_time);
 
 	switch (event.key) {
 	case Key::SPACE: {
-		entity == &global_diablo_entity ?
-			entity = &global_head_entity : entity = &global_diablo_entity;
+		entity = (entity == &global_diablo_entity) ? &global_head_entity : entity = &global_diablo_entity;
+		break;
+	}
+	case Key::T: {
+		draw_type = (draw_type == Draw_Type::FILLED) ? Draw_Type::WIREFRAME : Draw_Type::FILLED;
 		break;
 	}
 	case Key::P: {
-		projection_type == Projection::PERSPECTIVE ?
-			projection_type = Projection::ORTHOGRAPHIC : projection_type = Projection::PERSPECTIVE;
+		projection_type = (projection_type == Projection::PERSPECTIVE) ?
+			Projection::ORTHOGRAPHIC : projection_type = Projection::PERSPECTIVE;
 		break;
 	}
 	default: {
@@ -108,10 +116,12 @@ void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 	}
 	}
 
-	draw_entity(arena, canvas, &global_camera, entity, projection_type);
+	draw_entity(arena, canvas, &global_camera, entity, draw_type, projection_type);
 }
 
-static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Projection PROJ_TYPE) {
+static void draw_entity(
+	Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Draw_Type draw_type, Projection proj_type
+) {
 
 	camera->viewport.w = (2 * (tanf(camera->fov / 2.0f) * camera->near));
 	camera->viewport.h = camera->viewport.w / camera->aspect_ratio;
@@ -121,17 +131,16 @@ static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, En
 	i64 vba_count = entity->model.vertices_count;
 	Vector3* vba = (Vector3*)Memory::arena_push(arena, vba_count * sizeof(Vector3), alignof(Vector3));
 
-	transformation_pipeline(canvas, camera, entity, vba, PROJ_TYPE);
-	draw_faces(canvas, entity, vba);
+	transformation_pipeline(canvas, camera, entity, vba, proj_type);
+	draw_faces(canvas, entity, vba, draw_type);
 
 	Memory::arena_restore(arena_snapshot);
 }
 
-static void draw_faces(Canvas* canvas, Entity* entity, Vector3* vba) {
+static void draw_faces(Canvas* canvas, Entity* entity, Vector3* vba, Draw_Type draw_type) {
 	i64 faces_count = entity->model.faces_count;
 	Face* faces = entity->model.faces;
 	Vector3 v1, v2, v3;
-	Vector2i p1, p2, p3;
 #pragma omp parallel for
 	for (i64 i = 0; i < faces_count; ++i) {
 		v1 = vba[faces[i].v_indices[0]];
@@ -150,29 +159,45 @@ static void draw_faces(Canvas* canvas, Entity* entity, Vector3* vba) {
 			v3.y >= -(f32)canvas->origin.y && v3.y < (f32)canvas->origin.y - 1;
 
 		if (is_valid_face) {
-			p1.x = (i32)roundf(v1.x);
-			p1.y = (i32)roundf(v1.y);
+			if (draw_type == Draw_Type::FILLED) {
+				Vector2 p1, p2, p3;
+				p1.x = roundf(v1.x);
+				p1.y = roundf(v1.y);
 
-			p2.x = (i32)roundf(v2.x);
-			p2.y = (i32)roundf(v2.y);
+				p2.x = roundf(v2.x);
+				p2.y = roundf(v2.y);
 
-			p3.x = (i32)roundf(v3.x);
-			p3.y = (i32)roundf(v3.y);
+				p3.x = roundf(v3.x);
+				p3.y = roundf(v3.y);
 
-			draw_line(canvas, p1, p2, to_u32_color(COLOR_RED));
-			draw_line(canvas, p1, p3, to_u32_color(COLOR_RED));
-			draw_line(canvas, p2, p3, to_u32_color(COLOR_RED));
+				draw_filled_triangle(canvas, p1, p2, p3, (u32)(i * i));
+			}
+			else {
+				Vector2i p1, p2, p3;
+				p1.x = (i32)roundf(v1.x);
+				p1.y = (i32)roundf(v1.y);
 
-			set_pixel(canvas, p1.x, p1.y, to_u32_color(COLOR_WHITE));
-			set_pixel(canvas, p2.x, p2.y, to_u32_color(COLOR_WHITE));
-			set_pixel(canvas, p3.x, p3.y, to_u32_color(COLOR_WHITE));
+				p2.x = (i32)roundf(v2.x);
+				p2.y = (i32)roundf(v2.y);
+
+				p3.x = (i32)roundf(v3.x);
+				p3.y = (i32)roundf(v3.y);
+
+				draw_line(canvas, p1, p2, to_u32_color(COLOR_RED));
+				draw_line(canvas, p1, p3, to_u32_color(COLOR_RED));
+				draw_line(canvas, p2, p3, to_u32_color(COLOR_RED));
+
+				set_pixel(canvas, p1.x, p1.y, to_u32_color(COLOR_WHITE));
+				set_pixel(canvas, p2.x, p2.y, to_u32_color(COLOR_WHITE));
+				set_pixel(canvas, p3.x, p3.y, to_u32_color(COLOR_WHITE));
+			}
 		}
 	}
 }
 
-static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba, Projection PROJ_TYPE) {
+static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba, Projection proj_type) {
 
-	f32 scale = PROJ_TYPE == Projection::ORTHOGRAPHIC ? entity->scale * 0.003f : entity->scale;
+	f32 scale = proj_type == Projection::ORTHOGRAPHIC ? entity->scale * 0.03f : entity->scale;
 
 	Vector3 camera_relative_pos = entity->position - camera->position;
 
@@ -182,11 +207,11 @@ static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* enti
 	for (i64 i = 0; i < vba_count; ++i) {
 		vba[i] = vertices[i] * scale + camera_relative_pos;
 		vba[i] = vba[i].x * camera->inv_x_axis + vba[i].y * camera->inv_y_axis + vba[i].z * camera->inv_z_axis;
-		vba[i] = project_to_screen(canvas, camera, vba[i], PROJ_TYPE);
+		vba[i] = project_to_screen(canvas, camera, vba[i], proj_type);
 	}
 }
 
-static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex, Projection PROJ_TYPE) {
+static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex, Projection proj_type) {
 
 	f32 x = vertex.x;
 	f32 y = vertex.y;
@@ -195,7 +220,7 @@ static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex,
 	f32 far = camera->far;
 
 
-	if (PROJ_TYPE == Projection::PERSPECTIVE) {
+	if (proj_type == Projection::PERSPECTIVE) {
 		// perspective projection 
 		// IMPORTANT ASSUMPTION all vertices are with in view so no clipping or clamping
 		// normalizing vertex which by now is relative to the camera(camera.position is its origin)
@@ -218,6 +243,54 @@ static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex,
 	y = y * canvas->origin.y;
 
 	return Vector3{ x, y, z };
+}
+
+static void draw_filled_triangle(Canvas* canvas, Vector2 p1, Vector2 p2, Vector2 p3, u32 color) {
+	Vector2 top_point = p1;
+	Vector2 middle_point = p2;
+	Vector2 bottom_point = p3;
+
+	if (top_point.y < middle_point.y) {
+		Math::swap(&top_point, &middle_point);
+	}
+	if (top_point.y < bottom_point.y) {
+		Math::swap(&top_point, &bottom_point);
+	}
+	if (middle_point.y < bottom_point.y) {
+		Math::swap(&middle_point, &bottom_point);
+	}
+
+
+	f32 divisor = bottom_point.y - top_point.y;
+	f32 top_to_bottom_slope = (divisor != 0) ? (bottom_point.x - top_point.x) / divisor : 0;
+	f32 top_to_bottom_b = top_point.x - top_to_bottom_slope * top_point.y;
+
+	divisor = middle_point.y - top_point.y;
+	f32 top_to_middle_slope = (divisor != 0) ? (middle_point.x - top_point.x) / divisor : 0;
+	f32 top_to_middle_b = top_point.x - top_to_middle_slope * top_point.y;
+
+	divisor = bottom_point.y - middle_point.y;
+	f32 middle_to_bottom_slope = (divisor != 0) ? (bottom_point.x - middle_point.x) / divisor : 0;
+	f32 middle_to_bottom_b = middle_point.x - middle_to_bottom_slope * middle_point.y;
+
+	// going from top to mid using top_to_bottom_line on one side and top_to_middle_line on the other
+	i32 y = (i32)top_point.y;
+	while (y >= middle_point.y) {
+		i32 x1 = (i32)roundf(y * top_to_bottom_slope + top_to_bottom_b);
+		i32 x2 = (i32)roundf(y * top_to_middle_slope + top_to_middle_b);
+
+		draw_line(canvas, Vector2i{ x1, y }, Vector2i{ x2, y }, color);
+		--y;
+	}
+
+	// same as above but now using the middle_to_bottom_line on one side and top_to_middle_line on the other
+	while (y >= bottom_point.y) {
+		i32 x1 = (i32)roundf(y * top_to_bottom_slope + top_to_bottom_b);
+		i32 x2 = (i32)roundf(y * middle_to_bottom_slope + middle_to_bottom_b);
+
+		draw_line(canvas, Vector2i{ x1, y }, Vector2i{ x2, y }, color);
+		--y;
+	}
 }
 
 static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color) {
@@ -273,7 +346,19 @@ static u32 to_u32_color(Vector3 rbg) {
 
 	return red << 16 | green << 8 | blue;
 }
-#include <iostream>
+
+#include <random>
+[[maybe_unused]]
+static u32 get_rand_color() {
+	static std::mt19937 gen(std::random_device{}());
+	static std::uniform_real_distribution<f32> dist(0.0f, 1.1f);
+
+	f32 r = dist(gen);
+	f32 g = dist(gen);
+	f32 b = dist(gen);
+	return to_u32_color(Vector3{ r, g, b });
+}
+
 static void camera_process(Camera* camera, Event event, f32 delta_time) {
 
 	Key key = event.key;
@@ -312,7 +397,7 @@ static void camera_process(Camera* camera, Event event, f32 delta_time) {
 	Vector2 mouse_velocity = mouse_direction * (CAMERA_ROTATION_SPEED * delta_time);
 	camera->rotation.y += mouse_velocity.x;
 	camera->rotation.x += mouse_velocity.y;
-	std::cout << camera->rotation.y << std::endl;
+
 	camera->rotation.x = Math::clamp(camera->rotation.x, -89.0f, 89.0f);
 
 	f32 x_rad = Math::to_radians(camera->rotation.x);

@@ -187,6 +187,10 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 			global_event.key = Key::CONTROL;
 			break;
 		}
+		case 'T': {
+			global_event.key = Key::T;
+			break;
+		}
 		case 'P': {
 			global_event.key = Key::P;
 			break;

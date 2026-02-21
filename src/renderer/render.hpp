@@ -3,6 +3,11 @@
 
 #include <core/core.hpp>
 
+enum class Draw_Type {
+	FILLED,
+	WIREFRAME
+};
+
 enum class Projection {
 	PERSPECTIVE,
 	ORTHOGRAPHIC
@@ -12,6 +17,7 @@ enum class Key {
 	NONE,
 	SPACE,
 	CONTROL,
+	T,
 	P,
 	W,
 	A,
