@@ -91,7 +91,7 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 }
 
 void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
-	
+
 	static Entity* entity = &global_diablo_entity;
 	static Draw_Type draw_type = Draw_Type::FILLED;
 	static Projection projection_type = Projection::PERSPECTIVE;
@@ -244,6 +244,9 @@ static void draw_filled_triangle(Canvas* canvas, Vector2i p1, Vector2i p2, Vecto
 	i32 max_y = Math::maximum(p1.y, Math::maximum(p2.y, p3.y));
 
 	i32 total_area2 = signed_triangle_area2(p1, p2, p3);
+	if (total_area2 < 2) {
+		return;
+	}
 
 #pragma omp parallel for
 	for (i32 y = min_y; y <= max_y; ++y) {
