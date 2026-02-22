@@ -38,7 +38,7 @@ struct Entity {
 // static global vars
 static Camera global_camera = {
 	.position = Vector3{0, 0, 0},
-	.rotation = Vector3{0, 0, 0},
+	.rotation = Vector3{0, 180, 0},
 	.x_axis = Vector3{1, 0, 0},
 	.y_axis = Vector3{0, 1, 0},
 	.z_axis = Vector3{0, 0, 1},
@@ -53,12 +53,12 @@ static Camera global_camera = {
 	.viewport = {}
 };
 static Entity global_diablo_entity = {
-	.position = Vector3{0, 0, 3.5f},
+	.position = Vector3{0, 0, -3.5f},
 	.model = Model{},
 	.scale = 1.0f
 };
 struct Entity global_head_entity = {
-	.position = Vector3{0, 0, 3.5f},
+	.position = Vector3{0, 0, -3.5f},
 	.model = Model{},
 	.scale = 1.0f
 };
@@ -146,7 +146,7 @@ static void draw_entity(
 	z_buffer.origin = canvas->origin;
 
 	z_buffer.framebuffer = Memory::arena_push(arena, z_buffer.h * z_buffer.pitch, alignof(f32));
-	memset(z_buffer.framebuffer, 0, z_buffer.h * z_buffer.pitch);
+	memset(z_buffer.framebuffer, INT8_MAX, z_buffer.h * z_buffer.pitch);
 
 	transformation_pipeline(canvas, camera, entity, vba, proj_type);
 	draw_faces(canvas, &z_buffer, entity, vba, draw_type);
@@ -220,24 +220,6 @@ static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* enti
 	}
 }
 
-/*
-static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba, Projection proj_type) {
-
-	f32 scale = proj_type == Projection::ORTHOGRAPHIC ? entity->scale * 0.03f : entity->scale;
-
-	Vector3 camera_relative_pos = entity->position - camera->position;
-
-	Vector3* vertices = entity->model.vertices;
-	i64 vba_count = entity->model.vertices_count;
-#pragma omp parallel for
-	for (i64 i = 0; i < vba_count; ++i) {
-		vba[i] = vertices[i] * scale + camera_relative_pos;
-		vba[i] = vba[i].x * camera->inv_x_axis + vba[i].y * camera->inv_y_axis + vba[i].z * camera->inv_z_axis;
-		vba[i] = project_to_screen(canvas, camera, vba[i], proj_type);
-	}
-}
-*/
-
 static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex, Projection proj_type) {
 
 	f32 x = vertex.x;
@@ -246,10 +228,8 @@ static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex,
 	f32 near = camera->near;
 	f32 far = camera->far;
 
-
 	if (proj_type == Projection::PERSPECTIVE) {
 		// perspective projection 
-		// IMPORTANT ASSUMPTION all vertices are with in view so no clipping or clamping
 		// normalizing vertex which by now is relative to the camera(camera.position is its origin)
 		// and using the unit vector as a line and finding the intersection with the  viewport plane
 		if (vertex.z != 0) {
@@ -265,7 +245,7 @@ static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex,
 	x = ((x - left) / viewport.w) * 2 - 1;
 	y = ((y - bottom) / viewport.h) * 2 - 1;
 	z = (z - near) / (far - near);
-	
+
 	x = x * canvas->origin.x;
 	y = y * canvas->origin.y;
 
@@ -305,9 +285,8 @@ static void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector3 v1, V
 			bool is_valid_pixel = a >= 0 && b >= 0 && c >= 0;
 			if (is_valid_pixel) {
 				f32 z = a * v1.z + b * v2.z + c * v3.z;
-				if (z > get_z_buffer_at(z_buffer, x, y)) {
+				if (z < get_z_buffer_at(z_buffer, x, y)) {
 					set_z_buffer_at(z_buffer, x, y, z);
-					//color = to_u32_color(Vector3{ 1 - z, 1 - z, 1 - z });
 					set_pixel(canvas, x, y, color);
 				}
 			}
@@ -475,73 +454,4 @@ static void camera_process(Camera* camera, Event event, f32 delta_time) {
 	camera->inv_z_axis = Vector3{ camera->x_axis.z, camera->y_axis.z, camera->z_axis.z };
 }
 
-/*
-My first attempts
 
-static void draw_triangles(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba);
-static Vector3 project_to_viewport(Camera* camera, Vector3 vertex);
-static void local_to_camera_space(Camera* camera, Entity* entity, Vector3* vba);
-static void draw_triangles(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba) {
-	Vector2 viewport;
-	viewport.w = (2 * (tanf(camera->fov / 2.0f) * camera->near));
-	viewport.h = viewport.w / camera->aspect_ratio;
-
-	Vector2 canvas_viewport_ratio;
-	canvas_viewport_ratio.x = canvas->w / viewport.w;
-	canvas_viewport_ratio.y = canvas->h / viewport.h;
-
-	Vector3 v1, v2, v3;
-	Vector2i p1, p2, p3;
-	Face* faces = entity->model.faces;
-	i64 faces_count = entity->model.faces_count;
-#pragma omp parallel for
-	for (i64 i = 0; i < faces_count; ++i) {
-		v1 = project_to_viewport(camera, vba[faces[i].v_indices[0]]);
-		v2 = project_to_viewport(camera, vba[faces[i].v_indices[1]]);
-		v3 = project_to_viewport(camera, vba[faces[i].v_indices[2]]);
-
-		p1.x = (i32)roundf(v1.x * canvas_viewport_ratio.x);
-		p1.y = (i32)roundf(v1.y * canvas_viewport_ratio.y);
-
-		p2.x = (i32)roundf(v2.x * canvas_viewport_ratio.x);
-		p2.y = (i32)roundf(v2.y * canvas_viewport_ratio.y);
-
-		p3.x = (i32)roundf(v3.x * canvas_viewport_ratio.x);
-		p3.y = (i32)roundf(v3.y * canvas_viewport_ratio.y);
-
-		u32 color = to_u32_color(COLOR_RED);
-
-		draw_line(canvas, p1, p2, color);
-		draw_line(canvas, p1, p3, color);
-		draw_line(canvas, p2, p3, color);
-	}
-}
-
-static Vector3 project_to_viewport(Camera* camera, Vector3 vertex) {
-	// perspective projection
-	// IMPORTANT ASSUMPTION all vertices are with in view so no clipping or clamping
-	// normalizing vertex which by now is relative to the camera(camera.position is its origin)
-	// and using the unit vector as a line and finding the intersection with the  viewport plane
-	Vector3 vn = Math::normalize(vertex);
-
-	f32 t = camera->near / vn.z;
-	Vector3 result;
-	result.x = vn.x * t;
-	result.y = vn.y * t;
-	result.z = vertex.z - camera->near;
-
-	return result;
-}
-
-static void local_to_camera_space(Camera* camera, Entity* entity, Vector3* vba) {
-
-	i64 count = entity->model.vertices_count;
-	Vector3* vertices = entity->model.vertices;
-
-	Vector3 camera_relative_position = entity->position - camera->position;
-	for (i64 i = 0; i < count; ++i) {
-		vba[i] = vertices[i] + camera_relative_position;
-	}
-}
-
-*/
