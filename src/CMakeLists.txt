@@ -7,3 +7,4 @@ target_sources(
 )
 
 add_subdirectory(core)
+add_subdirectory(renderer)

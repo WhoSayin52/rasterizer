@@ -1,50 +1,30 @@
 #include "./render.hpp"
 
+#include "./camera.hpp"
+#include "./draw.hpp"
+
 #include "./../asset_manager/asset_manager.hpp"
 
 #include <cstdlib>
 #include <cstring>
 
-// internal consts
-static constexpr Vector3 COLOR_WHITE = { 1.0f, 1.0f, 1.0f };
-static constexpr Vector3 COLOR_RED = { 1.0f, 0.0f, 0.0f };
-static f32 CAMERA_SPEED = 10.0f;
-static f32 CAMERA_ROTATION_SPEED = 100.0f;
-
 // internal structs
-struct Camera {
-	Vector3 position;
-	Vector3 rotation;
-	Vector3 x_axis;
-	Vector3 y_axis;
-	Vector3 z_axis;
-	Vector3 inv_x_axis; // inv == inverse used to change vertex basis
-	Vector3 inv_y_axis;
-	Vector3 inv_z_axis;
-
-	f32 fov; // field of view in radians;
-	f32 near; // distance between camera and viewport
-	f32 far;
-	f32 aspect_ratio;
-	Vector2 viewport;
-};
-
 struct Entity {
 	Vector3 position;
+	Vector3 rotation;
+	Vector3 scale;
 	Model model;
-	f32 scale;
 };
 
 // static global vars
 static Camera global_camera = {
 	.position = Vector3{0, 0, 0},
 	.rotation = Vector3{0, 180, 0},
-	.x_axis = Vector3{1, 0, 0},
-	.y_axis = Vector3{0, 1, 0},
-	.z_axis = Vector3{0, 0, 1},
-	.inv_x_axis = Vector3{1, 0, 0},
-	.inv_y_axis = Vector3{0, 1, 0},
-	.inv_z_axis = Vector3{0, 0, 1},
+	.basis = Matrix3{
+		1, 0, 0, // col1
+		0, 1, 0, // col2
+		0, 0, 1	// col3
+	},
 
 	.fov = 60.0f * Math::PI32 / 180.0f, // radians
 	.near = 0.1f,
@@ -52,39 +32,30 @@ static Camera global_camera = {
 	.aspect_ratio = 16.0f / 9.0f,
 	.viewport = {}
 };
+
 static Entity global_diablo_entity = {
 	.position = Vector3{0, 0, -3.5f},
+	.rotation = Vector3{0, 0, 0},
+	.scale = Vector3{ 1, 1, 1},
 	.model = Model{},
-	.scale = 1.0f
 };
 struct Entity global_head_entity = {
 	.position = Vector3{0, 0, -3.5f},
+	.rotation = Vector3{0, 0, 0},
+	.scale = Vector3{ 1, 1, 1},
 	.model = Model{},
-	.scale = 1.0f
 };
 
 // internal functions
 static void draw_entity(
 	Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Draw_Type draw_type, Projection proj_type
 );
-static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector3* vba, Draw_Type draw_type);
+static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba, Draw_Type draw_type);
 
-static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba, Projection proj_type);
-static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex, Projection proj_type);
-
-static void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector3 v1, Vector3 v2, Vector3 v3, u32 color);
-static f32 get_z_buffer_at(Canvas* z_buffer, i32 x, i32 y);
-static void set_z_buffer_at(Canvas* z_buffer, i32 x, i32 y, f32 val);
-static f32 signed_triangle_area2(Vector2i p1, Vector2i p2, Vector2i p3);
-
-static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color);
-static void set_pixel(Canvas* canvas, i32 x, i32 y, u32 color);
-
-static u32 to_u32_color(Vector3 rbg);
-static u32 get_rand_color();
-
-static void camera_process(Camera* camera, Event event, f32 delta_time);
-
+static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector4* vba, Projection proj_type);
+static void get_model_matrix(Matrix4* result, Vector3 position, Vector3 rotation, Vector3 scale);
+static void get_view_matrix(Matrix4* result, Camera* camera);
+static Vector4 project_to_screen(Canvas* canvas, Camera* camera, Vector4 vertex, Projection proj_type);
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	set_asset_manager_path(path_to_assets);
@@ -103,7 +74,7 @@ void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 	static Draw_Type draw_type = Draw_Type::FILLED;
 	static Projection projection_type = Projection::PERSPECTIVE;
 
-	camera_process(&global_camera, event, delta_time);
+	camera_process(&global_camera, &event, delta_time);
 
 	switch (event.key) {
 	case Key::SPACE: {
@@ -137,7 +108,7 @@ static void draw_entity(
 	Memory::Arena_Snapshot arena_snapshot = Memory::arena_create_snapshot(arena);
 
 	i64 vba_count = entity->model.vertices_count;
-	Vector3* vba = (Vector3*)Memory::arena_push(arena, vba_count * sizeof(Vector3), alignof(Vector3));
+	Vector4* vba = (Vector4*)Memory::arena_push(arena, vba_count * sizeof(Vector4), alignof(Vector4));
 
 	Canvas z_buffer;
 	z_buffer.w = canvas->w;
@@ -154,10 +125,10 @@ static void draw_entity(
 	Memory::arena_restore(arena_snapshot);
 }
 
-static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector3* vba, Draw_Type draw_type) {
+static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba, Draw_Type draw_type) {
 	i64 faces_count = entity->model.faces_count;
 	Face* faces = entity->model.faces;
-	Vector3 v1, v2, v3;
+	Vector4 v1, v2, v3;
 #pragma omp parallel for
 	for (i64 i = 0; i < faces_count; ++i) {
 		v1 = vba[faces[i].v_indices[0]];
@@ -205,22 +176,91 @@ static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector3
 	}
 }
 
-static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector3* vba, Projection proj_type) {
+static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector4* vba, Projection proj_type) {
 
-	f32 scale = proj_type == Projection::ORTHOGRAPHIC ? entity->scale * 0.03f : entity->scale;
+	Vector3 entity_scale = (proj_type == Projection::ORTHOGRAPHIC) ? entity->scale * 0.03f : entity->scale;
+
+	Matrix4 model;
+	get_model_matrix(&model, entity->position, entity->rotation, entity_scale);
+
+	Matrix4 view;
+	get_view_matrix(&view, camera);
+
+	Matrix4 view_x_model = view * model;
 
 	Vector3* vertices = entity->model.vertices;
 	i64 vba_count = entity->model.vertices_count;
 #pragma omp parallel for
 	for (i64 i = 0; i < vba_count; ++i) {
-		vba[i] = vertices[i] * scale + entity->position;
-		vba[i] = vba[i] - camera->position;
-		vba[i] = vba[i].x * camera->inv_x_axis + vba[i].y * camera->inv_y_axis + vba[i].z * camera->inv_z_axis;
+		vba[i] = Vector4{ vertices[i].x, vertices[i].y, vertices[i].z, 1 };
+		vba[i] = view_x_model * vba[i];
 		vba[i] = project_to_screen(canvas, camera, vba[i], proj_type);
 	}
 }
 
-static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex, Projection proj_type) {
+static void get_model_matrix(Matrix4* result, Vector3 position, Vector3 rotation, Vector3 scale) {
+	Matrix4 translation_matrix;
+	translation_matrix.x_axis = Vector4{ 1, 0, 0, 0 };
+	translation_matrix.y_axis = Vector4{ 0, 1, 0, 0 };
+	translation_matrix.z_axis = Vector4{ 0, 0, 1, 0 };
+	translation_matrix.w_axis = Vector4{ position.x, position.y, position.z, 1 };
+
+	Matrix4 scale_matrix;
+	scale_matrix.x_axis = Vector4{ scale.x, 0, 0, 0 };
+	scale_matrix.y_axis = Vector4{ 0, scale.y, 0, 0 };
+	scale_matrix.z_axis = Vector4{ 0, 0, scale.z, 0 };
+	scale_matrix.w_axis = Vector4{ 0, 0, 0, 1 };
+
+	f32 x_rad = Math::to_radians(rotation.x);
+	f32 y_rad = Math::to_radians(rotation.y);
+	f32 z_rad = Math::to_radians(rotation.z);
+
+	Matrix4 rotation_matrix_around_x;
+	rotation_matrix_around_x.x_axis = Vector4{ 1, 0, 0, 0 };
+	rotation_matrix_around_x.y_axis = Vector4{ 0, cosf(x_rad), sinf(x_rad), 0 };
+	rotation_matrix_around_x.z_axis = Vector4{ 0, -sinf(x_rad), cosf(x_rad), 0 };
+	rotation_matrix_around_x.w_axis = Vector4{ 0, 0, 0, 1 };
+
+	Matrix4 rotation_matrix_around_y;
+	rotation_matrix_around_y.x_axis = Vector4{ cosf(y_rad), 0, -sinf(y_rad), 0 };
+	rotation_matrix_around_y.y_axis = Vector4{ 0, 1, 0, 0 };
+	rotation_matrix_around_y.z_axis = Vector4{ sinf(y_rad), 0, cosf(y_rad), 0 };
+	rotation_matrix_around_y.w_axis = Vector4{ 0, 0, 0, 1 };
+
+	Matrix4 rotation_matrix_around_z;
+	rotation_matrix_around_z.x_axis = Vector4{ cosf(z_rad), -sinf(z_rad), 0, 0 };
+	rotation_matrix_around_z.y_axis = Vector4{ sinf(z_rad), cosf(z_rad), 0, 0 };
+	rotation_matrix_around_z.z_axis = Vector4{ 0, 0, 1, 0 };
+	rotation_matrix_around_z.w_axis = Vector4{ 0, 0, 0, 1 };
+
+	// x y z order
+	Matrix4 rotation_matrix = rotation_matrix_around_z * rotation_matrix_around_y * rotation_matrix_around_x;
+
+	*result = translation_matrix * rotation_matrix * scale_matrix;
+}
+
+static void get_view_matrix(Matrix4* result, Camera* camera) {
+	Vector3 cam_pos = camera->position;
+
+	Matrix4 translation;
+	translation.x_axis = Vector4{ 1, 0, 0, 0 };
+	translation.y_axis = Vector4{ 0, 1, 0, 0 };
+	translation.z_axis = Vector4{ 0, 0, 1, 0 };
+	translation.w_axis = Vector4{ -cam_pos.x, -cam_pos.y, -cam_pos.z, 1 };
+
+	Matrix3 temp;
+	Math::transpose(&camera->basis, &temp);
+
+	Matrix4 inv_basis;
+	inv_basis.x_axis = Vector4{ temp.n11, temp.n21, temp.n31, 0 };
+	inv_basis.y_axis = Vector4{ temp.n12, temp.n22, temp.n32, 0 };
+	inv_basis.z_axis = Vector4{ temp.n13, temp.n23, temp.n33, 0 };
+	inv_basis.w_axis = Vector4{ 0, 0, 0, 1 };
+
+	*result = inv_basis * translation;
+}
+
+static Vector4 project_to_screen(Canvas* canvas, Camera* camera, Vector4 vertex, Projection proj_type) {
 
 	f32 x = vertex.x;
 	f32 y = vertex.y;
@@ -249,209 +289,11 @@ static Vector3 project_to_screen(Canvas* canvas, Camera* camera, Vector3 vertex,
 	x = x * canvas->origin.x;
 	y = y * canvas->origin.y;
 
-	return Vector3{ x, y, z };
+	return Vector4{ x, y, z, 1 };
 }
 
-static void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector3 v1, Vector3 v2, Vector3 v3, u32 color) {
-	Vector2i p1, p2, p3;
 
-	p1.x = (i32)roundf(v1.x);
-	p1.y = (i32)roundf(v1.y);
 
-	p2.x = (i32)roundf(v2.x);
-	p2.y = (i32)roundf(v2.y);
 
-	p3.x = (i32)roundf(v3.x);
-	p3.y = (i32)roundf(v3.y);
-
-	// calculating the min and max point of the bounding box
-	i32 min_x = Math::minimum(p1.x, Math::minimum(p2.x, p3.x));
-	i32 min_y = Math::minimum(p1.y, Math::minimum(p2.y, p3.y));
-	i32 max_x = Math::maximum(p1.x, Math::maximum(p2.x, p3.x));
-	i32 max_y = Math::maximum(p1.y, Math::maximum(p2.y, p3.y));
-
-	f32 total_area2 = signed_triangle_area2(p1, p2, p3);
-	if (total_area2 < 2.0f) {
-		return;
-	}
-
-#pragma omp parallel for
-	for (i32 y = min_y; y <= max_y; ++y) {
-		for (i32 x = min_x; x <= max_x; ++x) {
-			f32 a = signed_triangle_area2(Vector2i{ x, y }, p2, p3) / total_area2;
-			f32 b = signed_triangle_area2(Vector2i{ x, y }, p3, p1) / total_area2;
-			f32 c = signed_triangle_area2(Vector2i{ x, y }, p1, p2) / total_area2;
-
-			bool is_valid_pixel = a >= 0 && b >= 0 && c >= 0;
-			if (is_valid_pixel) {
-				f32 z = a * v1.z + b * v2.z + c * v3.z;
-				if (z < get_z_buffer_at(z_buffer, x, y)) {
-					set_z_buffer_at(z_buffer, x, y, z);
-					set_pixel(canvas, x, y, color);
-				}
-			}
-		}
-	}
-}
-
-static f32 get_z_buffer_at(Canvas* z_buffer, i32 x, i32 y) {
-	u32 cx = x + z_buffer->origin.x;
-	u32 cy = y + z_buffer->origin.y;
-
-	assert(
-		cx < z_buffer->w &&
-		cy < z_buffer->h &&
-		z_buffer->framebuffer != nullptr
-	);
-
-	f32* result = (f32*)((byte*)z_buffer->framebuffer + cy * z_buffer->pitch + cx * sizeof(f32));
-	return *result;
-}
-
-static void set_z_buffer_at(Canvas* z_buffer, i32 x, i32 y, f32 val) {
-	u32 cx = x + z_buffer->origin.x;
-	u32 cy = y + z_buffer->origin.y;
-
-	assert(
-		cx < z_buffer->w &&
-		cy < z_buffer->h &&
-		z_buffer->framebuffer != nullptr
-	);
-
-	f32* z = (f32*)((byte*)z_buffer->framebuffer + cy * z_buffer->pitch + cx * sizeof(f32));
-	*z = val;
-}
-
-static f32 signed_triangle_area2(Vector2i p1, Vector2i p2, Vector2i p3) {
-	return (f32)((p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x));
-}
-
-static void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color) {
-	// Bresenhams Algorithm
-	i32 x0 = p0.x;
-	i32 x1 = p1.x;
-	i32 y0 = p0.y;
-	i32 y1 = p1.y;
-
-	bool steep = Math::abs(x0 - x1) < Math::abs(y0 - y1);
-	if (steep) { // if the line is steep, we transpose the image
-		Math::swap(&x0, &y0);
-		Math::swap(&x1, &y1);
-	}
-	if (x0 > x1) { // make it left−to−right
-		Math::swap(&x0, &x1);
-		Math::swap(&y0, &y1);
-	}
-
-	i32 ierror = 0;
-	i32 y = y0;
-	for (i32 x = x0; x <= x1; ++x) {
-		if (steep) // if transposed, de−transpose
-			set_pixel(canvas, y, x, color);
-		else
-			set_pixel(canvas, x, y, color);
-		ierror += 2 * Math::abs(y1 - y0);
-		y += (y1 > y0 ? 1 : -1) * (ierror > x1 - x0);
-		ierror -= 2 * (x1 - x0) * (ierror > x1 - x0);
-	}
-}
-
-static void set_pixel(Canvas* canvas, i32 x, i32 y, u32 color) {
-	u32 cx = x + canvas->origin.x;
-	u32 cy = y + canvas->origin.y;
-
-	assert(
-		cx < canvas->w &&
-		cy < canvas->h &&
-		canvas->framebuffer != nullptr
-	);
-
-	u32 bpp = 4; // byte per pixel
-	u32* pixel = (u32*)((byte*)canvas->framebuffer + cy * canvas->pitch + cx * bpp);
-
-	*pixel = color;
-}
-
-static u32 to_u32_color(Vector3 rbg) {
-	u32 red = (u32)Math::clamp(rbg.r * 255.0f, 0.0f, 255.0f);
-	u32 green = (u32)Math::clamp(rbg.g * 255.0f, 0.0f, 255.0f);
-	u32 blue = (u32)Math::clamp(rbg.b * 255.0f, 0.0f, 255.0f);
-
-	return red << 16 | green << 8 | blue;
-}
-
-#include <random>
-[[maybe_unused]]
-static u32 get_rand_color() {
-	static std::mt19937 gen(std::random_device{}());
-	static std::uniform_real_distribution<f32> dist(0.0f, 1.1f);
-
-	f32 r = dist(gen);
-	f32 g = dist(gen);
-	f32 b = dist(gen);
-	return to_u32_color(Vector3{ r, g, b });
-}
-
-static void camera_process(Camera* camera, Event event, f32 delta_time) {
-
-	Key key = event.key;
-	switch (key) {
-	case Key::W: {
-		camera->position += camera->z_axis * (CAMERA_SPEED * delta_time);
-		break;
-	}
-	case Key::S: {
-		camera->position -= camera->z_axis * (CAMERA_SPEED * delta_time);
-		break;
-	}
-	case Key::A: {
-		camera->position -= camera->x_axis * (CAMERA_SPEED * delta_time);
-		break;
-	}
-	case Key::D: {
-		camera->position += camera->x_axis * (CAMERA_SPEED * delta_time);
-		break;
-	}
-	}
-
-	static Vector2 old_mouse_position = event.mouse_position;
-
-	Vector2 mouse_direction = event.mouse_position - old_mouse_position;
-	old_mouse_position = event.mouse_position;
-
-	if (mouse_direction.x != 0 || mouse_direction.y != 0) {
-		mouse_direction = Math::normalize(mouse_direction);
-	}
-
-	Vector2 mouse_velocity = mouse_direction * (CAMERA_ROTATION_SPEED * delta_time);
-	if (key != Key::CONTROL) {
-		mouse_velocity = { 0, 0 };
-	}
-
-	camera->rotation.y += mouse_velocity.x;
-	camera->rotation.x += mouse_velocity.y;
-
-	camera->rotation.x = Math::clamp(camera->rotation.x, -89.0f, 89.0f);
-
-	f32 x_rad = Math::to_radians(camera->rotation.x);
-	f32 y_rad = Math::to_radians(camera->rotation.y);
-
-	camera->z_axis.x = sinf(y_rad) * cosf(x_rad);
-	camera->z_axis.y = -sinf(x_rad);
-	camera->z_axis.z = cosf(y_rad) * cosf(x_rad);
-	camera->z_axis = Math::normalize(camera->z_axis);
-
-	Vector3 up_vector = { 0, 1, 0 };
-	camera->x_axis = Math::cross(up_vector, camera->z_axis);
-	camera->x_axis = Math::normalize(camera->x_axis);
-
-	camera->y_axis = Math::cross(camera->z_axis, camera->x_axis);
-	camera->y_axis = Math::normalize(camera->y_axis);
-
-	// since basis are orthonormal the inverse is the transpose
-	camera->inv_x_axis = Vector3{ camera->x_axis.x, camera->y_axis.x, camera->z_axis.x };
-	camera->inv_y_axis = Vector3{ camera->x_axis.y, camera->y_axis.y, camera->z_axis.y };
-	camera->inv_z_axis = Vector3{ camera->x_axis.z, camera->y_axis.z, camera->z_axis.z };
-}
 
 
