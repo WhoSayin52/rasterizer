@@ -111,7 +111,6 @@ int WINAPI wWinMain(HINSTANCE process, HINSTANCE prev_, PWSTR cmd_args, int show
 	canvas.w = global_win32_backbuffer.w;
 	canvas.h = global_win32_backbuffer.h;
 	canvas.pitch = global_win32_backbuffer.pitch;
-	canvas.origin = Vector2i{ (i32)canvas.w / 2, (i32)canvas.h / 2 };
 
 	global_is_running = true;
 	MSG message{};
@@ -189,10 +188,6 @@ static LRESULT win32_procedure(HWND window, UINT message, WPARAM wparam, LPARAM 
 		}
 		case 'T': {
 			global_event.key = Key::T;
-			break;
-		}
-		case 'P': {
-			global_event.key = Key::P;
 			break;
 		}
 		case 'W': {

@@ -8,17 +8,11 @@ enum class Draw_Type {
 	WIREFRAME
 };
 
-enum class Projection {
-	PERSPECTIVE,
-	ORTHOGRAPHIC
-};
-
 enum class Key {
 	NONE,
 	SPACE,
 	CONTROL,
 	T,
-	P,
 	W,
 	A,
 	S,
@@ -40,7 +34,6 @@ struct Canvas {
 	u32 w;
 	u32 h;
 	u32 pitch;
-	Vector2i origin;
 };
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets);

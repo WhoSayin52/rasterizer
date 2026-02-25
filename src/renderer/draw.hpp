@@ -14,7 +14,7 @@ void set_z_buffer_at(Canvas* z_buffer, i32 x, i32 y, f32 val);
 
 f32 signed_triangle_area2(Vector2i p1, Vector2i p2, Vector2i p3);
 
-void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector4 v1, Vector4 v2, Vector4 v3, u32 color);
+void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector3 v1, Vector3 v2, Vector3 v3, u32 color);
 void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color);
 void set_pixel(Canvas* canvas, i32 x, i32 y, u32 color);
 

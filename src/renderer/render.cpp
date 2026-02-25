@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cfloat>
 
 // internal structs
 struct Entity {
@@ -47,15 +48,17 @@ struct Entity global_head_entity = {
 };
 
 // internal functions
-static void draw_entity(
-	Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Draw_Type draw_type, Projection proj_type
-);
+static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Draw_Type draw_type);
 static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba, Draw_Type draw_type);
 
-static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector4* vba, Projection proj_type);
+static void transformation_pipeline(Camera* camera, Entity* entity, Vector4* vba);
 static void get_model_matrix(Matrix4* result, Vector3 position, Vector3 rotation, Vector3 scale);
 static void get_view_matrix(Matrix4* result, Camera* camera);
-static Vector4 project_to_screen(Canvas* canvas, Camera* camera, Vector4 vertex, Projection proj_type);
+static void  get_projection_matrix(Matrix4* result, Camera* camera);
+static Vector4 project_to_screen(Canvas* canvas, Camera* camera, Vector4 vertex);
+
+static Vector3 to_ndc(Vector4 vertex);
+static Vector3 to_screen(Canvas* canvas, Vector3 vertex);
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	set_asset_manager_path(path_to_assets);
@@ -72,7 +75,6 @@ void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 
 	static Entity* entity = &global_diablo_entity;
 	static Draw_Type draw_type = Draw_Type::FILLED;
-	static Projection projection_type = Projection::PERSPECTIVE;
 
 	camera_process(&global_camera, &event, delta_time);
 
@@ -85,25 +87,15 @@ void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 		draw_type = (draw_type == Draw_Type::FILLED) ? Draw_Type::WIREFRAME : Draw_Type::FILLED;
 		break;
 	}
-	case Key::P: {
-		projection_type = (projection_type == Projection::PERSPECTIVE) ?
-			Projection::ORTHOGRAPHIC : projection_type = Projection::PERSPECTIVE;
-		break;
-	}
 	default: {
 		break;
 	}
 	}
 
-	draw_entity(arena, canvas, &global_camera, entity, draw_type, projection_type);
+	draw_entity(arena, canvas, &global_camera, entity, draw_type);
 }
-
-static void draw_entity(
-	Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Draw_Type draw_type, Projection proj_type
-) {
-
-	camera->viewport.w = (2 * (tanf(camera->fov / 2.0f) * camera->near));
-	camera->viewport.h = camera->viewport.w / camera->aspect_ratio;
+#include <iostream>
+static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Draw_Type draw_type) {
 
 	Memory::Arena_Snapshot arena_snapshot = Memory::arena_create_snapshot(arena);
 
@@ -114,12 +106,11 @@ static void draw_entity(
 	z_buffer.w = canvas->w;
 	z_buffer.h = canvas->h;
 	z_buffer.pitch = canvas->w * sizeof(f32);
-	z_buffer.origin = canvas->origin;
 
 	z_buffer.framebuffer = Memory::arena_push(arena, z_buffer.h * z_buffer.pitch, alignof(f32));
-	memset(z_buffer.framebuffer, INT8_MAX, z_buffer.h * z_buffer.pitch);
+	std::fill((f32*)z_buffer.framebuffer, (f32*)z_buffer.framebuffer + z_buffer.w * z_buffer.h, FLT_MAX);
 
-	transformation_pipeline(canvas, camera, entity, vba, proj_type);
+	transformation_pipeline(camera, entity, vba);
 	draw_faces(canvas, &z_buffer, entity, vba, draw_type);
 
 	Memory::arena_restore(arena_snapshot);
@@ -128,26 +119,30 @@ static void draw_entity(
 static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba, Draw_Type draw_type) {
 	i64 faces_count = entity->model.faces_count;
 	Face* faces = entity->model.faces;
-	Vector4 v1, v2, v3;
+	Vector3 v1, v2, v3;
 #pragma omp parallel for
 	for (i64 i = 0; i < faces_count; ++i) {
-		v1 = vba[faces[i].v_indices[0]];
-		v2 = vba[faces[i].v_indices[1]];
-		v3 = vba[faces[i].v_indices[2]];
+		v1 = to_ndc(vba[faces[i].v_indices[0]]);
+		v2 = to_ndc(vba[faces[i].v_indices[1]]);
+		v3 = to_ndc(vba[faces[i].v_indices[2]]);
 
 		bool is_valid_face =
 			v1.z >= 0.0f && v1.z <= 1.0f &&
 			v2.z >= 0.0f && v2.z <= 1.0f &&
 			v3.z >= 0.0f && v3.z <= 1.0f &&
-			v1.x >= -(f32)canvas->origin.x && v1.x < (f32)canvas->origin.x - 1 &&
-			v2.x >= -(f32)canvas->origin.x && v2.x < (f32)canvas->origin.x - 1 &&
-			v3.x >= -(f32)canvas->origin.x && v3.x < (f32)canvas->origin.x - 1 &&
-			v1.y >= -(f32)canvas->origin.y && v1.y < (f32)canvas->origin.y - 1 &&
-			v2.y >= -(f32)canvas->origin.y && v2.y < (f32)canvas->origin.y - 1 &&
-			v3.y >= -(f32)canvas->origin.y && v3.y < (f32)canvas->origin.y - 1;
+
+			v1.x >= -1.0f && v1.x < 1.0f &&
+			v2.x >= -1.0f && v2.x < 1.0f &&
+			v3.x >= -1.0f && v3.x < 1.0f &&
+
+			v1.y >= -1.0f && v1.y < 1.0f &&
+			v2.y >= -1.0f && v2.y < 1.0f &&
+			v3.y >= -1.0f && v3.y < 1.0f;
 
 		if (is_valid_face) {
-
+			v1 = to_screen(canvas, v1);
+			v2 = to_screen(canvas, v2);
+			v3 = to_screen(canvas, v3);
 
 			if (draw_type == Draw_Type::FILLED) {
 				draw_filled_triangle(canvas, z_buffer, v1, v2, v3, (u32)(i * i));
@@ -155,14 +150,14 @@ static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4
 			else {
 				Vector2i p1, p2, p3;
 
-				p1.x = (i32)roundf(v1.x);
-				p1.y = (i32)roundf(v1.y);
+				p1.x = (i32)v1.x;
+				p1.y = (i32)v1.y;
 
-				p2.x = (i32)roundf(v2.x);
-				p2.y = (i32)roundf(v2.y);
+				p2.x = (i32)v2.x;
+				p2.y = (i32)v2.y;
 
-				p3.x = (i32)roundf(v3.x);
-				p3.y = (i32)roundf(v3.y);
+				p3.x = (i32)v3.x;
+				p3.y = (i32)v3.y;
 
 				draw_line(canvas, p1, p2, to_u32_color(COLOR_RED));
 				draw_line(canvas, p1, p3, to_u32_color(COLOR_RED));
@@ -176,25 +171,25 @@ static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4
 	}
 }
 
-static void transformation_pipeline(Canvas* canvas, Camera* camera, Entity* entity, Vector4* vba, Projection proj_type) {
-
-	Vector3 entity_scale = (proj_type == Projection::ORTHOGRAPHIC) ? entity->scale * 0.03f : entity->scale;
+static void transformation_pipeline(Camera* camera, Entity* entity, Vector4* vba) {
 
 	Matrix4 model;
-	get_model_matrix(&model, entity->position, entity->rotation, entity_scale);
+	get_model_matrix(&model, entity->position, entity->rotation, entity->scale);
 
 	Matrix4 view;
 	get_view_matrix(&view, camera);
 
-	Matrix4 view_x_model = view * model;
+	Matrix4 projection;
+	get_projection_matrix(&projection, camera);
+
+	Matrix4 MVP = projection * view * model;
 
 	Vector3* vertices = entity->model.vertices;
 	i64 vba_count = entity->model.vertices_count;
 #pragma omp parallel for
 	for (i64 i = 0; i < vba_count; ++i) {
 		vba[i] = Vector4{ vertices[i].x, vertices[i].y, vertices[i].z, 1 };
-		vba[i] = view_x_model * vba[i];
-		vba[i] = project_to_screen(canvas, camera, vba[i], proj_type);
+		vba[i] = MVP * vba[i];
 	}
 }
 
@@ -260,40 +255,50 @@ static void get_view_matrix(Matrix4* result, Camera* camera) {
 	*result = inv_basis * translation;
 }
 
-static Vector4 project_to_screen(Canvas* canvas, Camera* camera, Vector4 vertex, Projection proj_type) {
+static void  get_projection_matrix(Matrix4* result, Camera* camera) {
 
-	f32 x = vertex.x;
-	f32 y = vertex.y;
-	f32 z = vertex.z;
 	f32 near = camera->near;
 	f32 far = camera->far;
+	f32 frustum_x = tanf(camera->fov / 2.0f) * camera->near;
+	f32 frustum_y = frustum_x / camera->aspect_ratio;
 
-	if (proj_type == Projection::PERSPECTIVE) {
-		// perspective projection 
-		// normalizing vertex which by now is relative to the camera(camera.position is its origin)
-		// and using the unit vector as a line and finding the intersection with the  viewport plane
-		if (vertex.z != 0) {
-			x = x * near / z;
-			y = y * near / z;
-		}
-	}
-
-	Vector2 viewport = camera->viewport;
-	f32 left = -viewport.w / 2;
-	f32 bottom = -viewport.h / 2;
-
-	x = ((x - left) / viewport.w) * 2 - 1;
-	y = ((y - bottom) / viewport.h) * 2 - 1;
-	z = (z - near) / (far - near);
-
-	x = x * canvas->origin.x;
-	y = y * canvas->origin.y;
-
-	return Vector4{ x, y, z, 1 };
+	*result = Matrix4{
+		near / frustum_x, 0, 0, 0,
+		0, near / frustum_y, 0, 0,
+		0, 0, far / (far - near), 1,
+		0, 0, -(near * far) / (far - near), 0
+	};
 }
 
+static Vector3 to_ndc(Vector4 vertex) {
+	bool is_valid =
+		vertex.x >= -vertex.w && vertex.x <= vertex.w &&
+		vertex.y >= -vertex.w && vertex.y <= vertex.w &&
+		vertex.z >= -vertex.w && vertex.z <= vertex.w;
 
+	if (is_valid) {
+		return Vector3{
+			vertex.x / vertex.w,
+			vertex.y / vertex.w,
+			vertex.z / vertex.w,
+		};
+	}
+	else {
+		return Vector3{
+			2.0f,
+			2.0f,
+			2.0f
+		};
+	}
+}
 
+static Vector3 to_screen(Canvas* canvas, Vector3 vertex) {
+	return Vector3{
+		(vertex.x + 1) * canvas->w / 2,
+		(vertex.y + 1) * canvas->h / 2,
+		vertex.z
+	};
+}
 
 
 

@@ -4,17 +4,17 @@
 
 #include <cstdlib>
 
-void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector4 v1, Vector4 v2, Vector4 v3, u32 color) {
+void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector3 v1, Vector3 v2, Vector3 v3, u32 color) {
 	Vector2i p1, p2, p3;
 
-	p1.x = (i32)roundf(v1.x);
-	p1.y = (i32)roundf(v1.y);
+	p1.x = (i32)v1.x;
+	p1.y = (i32)v1.y;
 
-	p2.x = (i32)roundf(v2.x);
-	p2.y = (i32)roundf(v2.y);
+	p2.x = (i32)v2.x;
+	p2.y = (i32)v2.y;
 
-	p3.x = (i32)roundf(v3.x);
-	p3.y = (i32)roundf(v3.y);
+	p3.x = (i32)v3.x;
+	p3.y = (i32)v3.y;
 
 	// calculating the min and max point of the bounding box
 	i32 min_x = Math::minimum(p1.x, Math::minimum(p2.x, p3.x));
@@ -47,8 +47,8 @@ void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector4 v1, Vector4 
 }
 
 f32 get_z_buffer_at(Canvas* z_buffer, i32 x, i32 y) {
-	u32 cx = x + z_buffer->origin.x;
-	u32 cy = y + z_buffer->origin.y;
+	u32 cx = (u32)x;
+	u32 cy = (u32)y;
 
 	assert(
 		cx < z_buffer->w &&
@@ -61,8 +61,8 @@ f32 get_z_buffer_at(Canvas* z_buffer, i32 x, i32 y) {
 }
 
 void set_z_buffer_at(Canvas* z_buffer, i32 x, i32 y, f32 val) {
-	u32 cx = x + z_buffer->origin.x;
-	u32 cy = y + z_buffer->origin.y;
+	u32 cx = (u32)x;
+	u32 cy = (u32)y;
 
 	assert(
 		cx < z_buffer->w &&
@@ -109,8 +109,8 @@ void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color) {
 }
 
 void set_pixel(Canvas* canvas, i32 x, i32 y, u32 color) {
-	u32 cx = x + canvas->origin.x;
-	u32 cy = y + canvas->origin.y;
+	u32 cx = (u32)x;
+	u32 cy = (u32)y;
 
 	assert(
 		cx < canvas->w &&
