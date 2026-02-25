@@ -23,7 +23,7 @@ void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector3 v1, Vector3 
 	i32 max_y = Math::maximum(p1.y, Math::maximum(p2.y, p3.y));
 
 	f32 total_area2 = signed_triangle_area2(p1, p2, p3);
-	if (total_area2 < 2.0f) {
+	if (Math::abs(total_area2) < 2.0f) {
 		return;
 	}
 

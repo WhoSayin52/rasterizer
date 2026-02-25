@@ -49,14 +49,13 @@ struct Entity global_head_entity = {
 
 // internal functions
 static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Draw_Type draw_type);
-static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba, Draw_Type draw_type);
 
 static void transformation_pipeline(Camera* camera, Entity* entity, Vector4* vba);
 static void get_model_matrix(Matrix4* result, Vector3 position, Vector3 rotation, Vector3 scale);
 static void get_view_matrix(Matrix4* result, Camera* camera);
 static void  get_projection_matrix(Matrix4* result, Camera* camera);
-static Vector4 project_to_screen(Canvas* canvas, Camera* camera, Vector4 vertex);
 
+static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba, Draw_Type draw_type);
 static Vector3 to_ndc(Vector4 vertex);
 static Vector3 to_screen(Canvas* canvas, Vector3 vertex);
 
@@ -73,7 +72,7 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 
 void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 
-	static Entity* entity = &global_diablo_entity;
+	static Entity* entity = &global_head_entity;
 	static Draw_Type draw_type = Draw_Type::FILLED;
 
 	camera_process(&global_camera, &event, delta_time);
@@ -114,61 +113,6 @@ static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, En
 	draw_faces(canvas, &z_buffer, entity, vba, draw_type);
 
 	Memory::arena_restore(arena_snapshot);
-}
-
-static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba, Draw_Type draw_type) {
-	i64 faces_count = entity->model.faces_count;
-	Face* faces = entity->model.faces;
-	Vector3 v1, v2, v3;
-#pragma omp parallel for
-	for (i64 i = 0; i < faces_count; ++i) {
-		v1 = to_ndc(vba[faces[i].v_indices[0]]);
-		v2 = to_ndc(vba[faces[i].v_indices[1]]);
-		v3 = to_ndc(vba[faces[i].v_indices[2]]);
-
-		bool is_valid_face =
-			v1.z >= 0.0f && v1.z <= 1.0f &&
-			v2.z >= 0.0f && v2.z <= 1.0f &&
-			v3.z >= 0.0f && v3.z <= 1.0f &&
-
-			v1.x >= -1.0f && v1.x < 1.0f &&
-			v2.x >= -1.0f && v2.x < 1.0f &&
-			v3.x >= -1.0f && v3.x < 1.0f &&
-
-			v1.y >= -1.0f && v1.y < 1.0f &&
-			v2.y >= -1.0f && v2.y < 1.0f &&
-			v3.y >= -1.0f && v3.y < 1.0f;
-
-		if (is_valid_face) {
-			v1 = to_screen(canvas, v1);
-			v2 = to_screen(canvas, v2);
-			v3 = to_screen(canvas, v3);
-
-			if (draw_type == Draw_Type::FILLED) {
-				draw_filled_triangle(canvas, z_buffer, v1, v2, v3, (u32)(i * i));
-			}
-			else {
-				Vector2i p1, p2, p3;
-
-				p1.x = (i32)v1.x;
-				p1.y = (i32)v1.y;
-
-				p2.x = (i32)v2.x;
-				p2.y = (i32)v2.y;
-
-				p3.x = (i32)v3.x;
-				p3.y = (i32)v3.y;
-
-				draw_line(canvas, p1, p2, to_u32_color(COLOR_RED));
-				draw_line(canvas, p1, p3, to_u32_color(COLOR_RED));
-				draw_line(canvas, p2, p3, to_u32_color(COLOR_RED));
-
-				set_pixel(canvas, p1.x, p1.y, to_u32_color(COLOR_WHITE));
-				set_pixel(canvas, p2.x, p2.y, to_u32_color(COLOR_WHITE));
-				set_pixel(canvas, p3.x, p3.y, to_u32_color(COLOR_WHITE));
-			}
-		}
-	}
 }
 
 static void transformation_pipeline(Camera* camera, Entity* entity, Vector4* vba) {
@@ -270,11 +214,66 @@ static void  get_projection_matrix(Matrix4* result, Camera* camera) {
 	};
 }
 
+static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba, Draw_Type draw_type) {
+	i64 faces_count = entity->model.faces_count;
+	Face* faces = entity->model.faces;
+	Vector3 v1, v2, v3;
+#pragma omp parallel for
+	for (i64 i = 0; i < faces_count; ++i) {
+		v1 = to_ndc(vba[faces[i].v_indices[0]]);
+		v2 = to_ndc(vba[faces[i].v_indices[1]]);
+		v3 = to_ndc(vba[faces[i].v_indices[2]]);
+
+		bool is_valid_face =
+			v1.z >= 0.0f && v1.z <= 1.0f &&
+			v2.z >= 0.0f && v2.z <= 1.0f &&
+			v3.z >= 0.0f && v3.z <= 1.0f &&
+
+			v1.x >= -1.0f && v1.x < 1.0f &&
+			v2.x >= -1.0f && v2.x < 1.0f &&
+			v3.x >= -1.0f && v3.x < 1.0f &&
+
+			v1.y >= -1.0f && v1.y < 1.0f &&
+			v2.y >= -1.0f && v2.y < 1.0f &&
+			v3.y >= -1.0f && v3.y < 1.0f;
+
+		if (is_valid_face) {
+			v1 = to_screen(canvas, v1);
+			v2 = to_screen(canvas, v2);
+			v3 = to_screen(canvas, v3);
+
+			if (draw_type == Draw_Type::FILLED) {
+				draw_filled_triangle(canvas, z_buffer, v1, v2, v3, (u32)(i * i));
+			}
+			else {
+				Vector2i p1, p2, p3;
+
+				p1.x = (i32)v1.x;
+				p1.y = (i32)v1.y;
+
+				p2.x = (i32)v2.x;
+				p2.y = (i32)v2.y;
+
+				p3.x = (i32)v3.x;
+				p3.y = (i32)v3.y;
+
+				draw_line(canvas, p1, p2, to_u32_color(COLOR_RED));
+				draw_line(canvas, p1, p3, to_u32_color(COLOR_RED));
+				draw_line(canvas, p2, p3, to_u32_color(COLOR_RED));
+
+				set_pixel(canvas, p1.x, p1.y, to_u32_color(COLOR_WHITE));
+				set_pixel(canvas, p2.x, p2.y, to_u32_color(COLOR_WHITE));
+				set_pixel(canvas, p3.x, p3.y, to_u32_color(COLOR_WHITE));
+			}
+		}
+	}
+}
+
 static Vector3 to_ndc(Vector4 vertex) {
 	bool is_valid =
 		vertex.x >= -vertex.w && vertex.x <= vertex.w &&
 		vertex.y >= -vertex.w && vertex.y <= vertex.w &&
-		vertex.z >= -vertex.w && vertex.z <= vertex.w;
+		vertex.z >= 0 && vertex.z <= vertex.w;
 
 	if (is_valid) {
 		return Vector3{
