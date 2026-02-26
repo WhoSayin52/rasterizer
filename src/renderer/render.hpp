@@ -3,11 +3,6 @@
 
 #include <core/core.hpp>
 
-enum class Draw_Type {
-	FILLED,
-	WIREFRAME
-};
-
 enum class Key {
 	NONE,
 	SPACE,

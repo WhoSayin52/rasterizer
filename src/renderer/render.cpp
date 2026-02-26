@@ -2,6 +2,7 @@
 
 #include "./camera.hpp"
 #include "./draw.hpp"
+#include "./shader.hpp"
 
 #include "./../asset_manager/asset_manager.hpp"
 
@@ -40,22 +41,28 @@ static Entity global_diablo_entity = {
 	.scale = Vector3{ 1, 1, 1},
 	.model = Model{},
 };
-struct Entity global_head_entity = {
+static Entity global_head_entity = {
 	.position = Vector3{0, 0, -3.5f},
 	.rotation = Vector3{0, 0, 0},
 	.scale = Vector3{ 1, 1, 1},
 	.model = Model{},
 };
 
+static Vector3 global_light_direction = Math::normalize(Vector3{ 1, 1, -1 });
+static f32 global_shine_val = 1.0f;
+static i32 global_render_choice = 0;
+static bool global_is_smooth = false;
+static bool global_has_texture = false;
+
 // internal functions
-static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Draw_Type draw_type);
+static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity);
 
 static void transformation_pipeline(Camera* camera, Entity* entity, Vector4* vba);
 static void get_model_matrix(Matrix4* result, Vector3 position, Vector3 rotation, Vector3 scale);
 static void get_view_matrix(Matrix4* result, Camera* camera);
 static void  get_projection_matrix(Matrix4* result, Camera* camera);
 
-static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba, Draw_Type draw_type);
+static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba);
 static Vector3 to_ndc(Vector4 vertex);
 static Vector3 to_screen(Canvas* canvas, Vector3 vertex);
 
@@ -72,8 +79,7 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 
 void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 
-	static Entity* entity = &global_head_entity;
-	static Draw_Type draw_type = Draw_Type::FILLED;
+	static Entity* entity = &global_diablo_entity;
 
 	camera_process(&global_camera, &event, delta_time);
 
@@ -83,7 +89,19 @@ void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 		break;
 	}
 	case Key::T: {
-		draw_type = (draw_type == Draw_Type::FILLED) ? Draw_Type::WIREFRAME : Draw_Type::FILLED;
+		++global_render_choice;
+		global_render_choice = (global_render_choice > 3) ? 0 : global_render_choice;
+
+		if (global_render_choice == 0) {
+			global_is_smooth = false;
+			global_has_texture = false;
+		}
+		else if (global_render_choice == 3) {
+			global_is_smooth = true;
+		}
+		else if (global_render_choice == 4) {
+			global_has_texture = true;
+		}
 		break;
 	}
 	default: {
@@ -91,10 +109,10 @@ void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 	}
 	}
 
-	draw_entity(arena, canvas, &global_camera, entity, draw_type);
+	draw_entity(arena, canvas, &global_camera, entity);
 }
 #include <iostream>
-static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity, Draw_Type draw_type) {
+static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity) {
 
 	Memory::Arena_Snapshot arena_snapshot = Memory::arena_create_snapshot(arena);
 
@@ -110,7 +128,7 @@ static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, En
 	std::fill((f32*)z_buffer.framebuffer, (f32*)z_buffer.framebuffer + z_buffer.w * z_buffer.h, FLT_MAX);
 
 	transformation_pipeline(camera, entity, vba);
-	draw_faces(canvas, &z_buffer, entity, vba, draw_type);
+	draw_faces(canvas, &z_buffer, entity, vba);
 
 	Memory::arena_restore(arena_snapshot);
 }
@@ -214,7 +232,7 @@ static void  get_projection_matrix(Matrix4* result, Camera* camera) {
 	};
 }
 
-static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba, Draw_Type draw_type) {
+static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4* vba) {
 	i64 faces_count = entity->model.faces_count;
 	Face* faces = entity->model.faces;
 	Vector3 v1, v2, v3;
@@ -242,8 +260,105 @@ static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4
 			v2 = to_screen(canvas, v2);
 			v3 = to_screen(canvas, v3);
 
+			Triangle face;
+			face.v1 = v1;
+			face.v2 = v2;
+			face.v3 = v3;
+
+			face.n1 = entity->model.normals[faces[i].v_indices[0]];
+			face.n2 = entity->model.normals[faces[i].v_indices[1]];
+			face.n3 = entity->model.normals[faces[i].v_indices[2]];
+
+			face.light_direction = global_light_direction;
+			face.view_direction = global_camera.basis.forward;
+
+			face.color = COLOR_WHITE;
+			face.shine = global_shine_val;
+
+			face.is_smooth = global_is_smooth;
+			face.has_texture = global_has_texture;
+
+			switch (global_render_choice) {
+			case 0: {
+				Vector2i p1, p2, p3;
+
+				p1.x = (i32)v1.x;
+				p1.y = (i32)v1.y;
+
+				p2.x = (i32)v2.x;
+				p2.y = (i32)v2.y;
+
+				p3.x = (i32)v3.x;
+				p3.y = (i32)v3.y;
+
+				draw_line(canvas, p1, p2, to_u32_color(COLOR_RED));
+				draw_line(canvas, p1, p3, to_u32_color(COLOR_RED));
+				draw_line(canvas, p2, p3, to_u32_color(COLOR_RED));
+
+				set_pixel(canvas, p1.x, p1.y, to_u32_color(COLOR_WHITE));
+				set_pixel(canvas, p2.x, p2.y, to_u32_color(COLOR_WHITE));
+				set_pixel(canvas, p3.x, p3.y, to_u32_color(COLOR_WHITE));
+				break;
+			}
+			case 1: {
+				face.color = random_colors[i % array_count(random_colors)];
+				draw_filled_triangle(canvas, z_buffer, &face);
+				break;
+			}
+			case 2: {
+				Vector3 v1_ = entity->model.vertices[faces[i].v_indices[0]];
+				Vector3 v2_ = entity->model.vertices[faces[i].v_indices[1]];
+				Vector3 v3_ = entity->model.vertices[faces[i].v_indices[2]];
+
+				Vector3 face_normal = Math::normalize(Math::cross(v2_ - v1_, v3_ - v1_));
+				face.color = compute_fragment(
+					face_normal,
+					face.light_direction,
+					face.view_direction,
+					COLOR_WHITE,
+					face.shine
+				);
+
+				draw_filled_triangle(canvas, z_buffer, &face);
+				break;
+			}
+			case 3: {
+				draw_filled_triangle(canvas, z_buffer, &face);
+				break;
+			}
+			}
+			/*
 			if (draw_type == Draw_Type::FILLED) {
-				draw_filled_triangle(canvas, z_buffer, v1, v2, v3, (u32)(i * i));
+				Triangle face;
+				face.v1 = v1;
+				face.v2 = v2;
+				face.v3 = v3;
+
+				face.n1 = entity->model.normals[faces[i].v_indices[0]];
+				face.n2 = entity->model.normals[faces[i].v_indices[1]];
+				face.n3 = entity->model.normals[faces[i].v_indices[2]];
+
+				face.color = COLOR_WHITE;
+
+				if (global_color_choice == 0) {
+					f32 rand_color = (f32)(i * i) / (entity->model.faces_count * entity->model.faces_count);
+					face.color = Vector3{ rand_color, rand_color, rand_color };
+				}
+				else if (global_color_choice == 1) {
+					Vector3 v1_ = entity->model.vertices[faces[i].v_indices[0]];
+					Vector3 v2_ = entity->model.vertices[faces[i].v_indices[1]];
+					Vector3 v3_ = entity->model.vertices[faces[i].v_indices[2]];
+
+					Vector3 face_normal = Math::normalize(Math::cross(v2_ - v1_, v3_ - v1_));
+					face.color = compute_fragment(
+						face_normal,
+						global_light_direction,
+						global_camera.basis.forward,
+						COLOR_WHITE,
+						global_shine_val
+					);
+				}
+				draw_filled_triangle(canvas, z_buffer, &face);
 			}
 			else {
 				Vector2i p1, p2, p3;
@@ -265,6 +380,7 @@ static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4
 				set_pixel(canvas, p2.x, p2.y, to_u32_color(COLOR_WHITE));
 				set_pixel(canvas, p3.x, p3.y, to_u32_color(COLOR_WHITE));
 			}
+				*/
 		}
 	}
 }

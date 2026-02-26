@@ -1,20 +1,21 @@
 #include "./draw.hpp"
 
 #include "./render.hpp"
+#include "./shader.hpp"
 
 #include <cstdlib>
 
-void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector3 v1, Vector3 v2, Vector3 v3, u32 color) {
+void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Triangle* triangle) {
 	Vector2i p1, p2, p3;
 
-	p1.x = (i32)v1.x;
-	p1.y = (i32)v1.y;
+	p1.x = (i32)triangle->v1.x;
+	p1.y = (i32)triangle->v1.y;
 
-	p2.x = (i32)v2.x;
-	p2.y = (i32)v2.y;
+	p2.x = (i32)triangle->v2.x;
+	p2.y = (i32)triangle->v2.y;
 
-	p3.x = (i32)v3.x;
-	p3.y = (i32)v3.y;
+	p3.x = (i32)triangle->v3.x;
+	p3.y = (i32)triangle->v3.y;
 
 	// calculating the min and max point of the bounding box
 	i32 min_x = Math::minimum(p1.x, Math::minimum(p2.x, p3.x));
@@ -36,10 +37,23 @@ void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Vector3 v1, Vector3 
 
 			bool is_valid_pixel = a >= 0 && b >= 0 && c >= 0;
 			if (is_valid_pixel) {
-				f32 z = a * v1.z + b * v2.z + c * v3.z;
+				f32 z = a * triangle->v1.z + b * triangle->v2.z + c * triangle->v3.z;
 				if (z < get_z_buffer_at(z_buffer, x, y)) {
 					set_z_buffer_at(z_buffer, x, y, z);
-					set_pixel(canvas, x, y, color);
+					if (triangle->is_smooth) {
+						Vector3 normal = Math::normalize(a * triangle->n1 + b * triangle->n2 + c * triangle->n3);
+						Vector3 color = compute_fragment(
+							normal,
+							triangle->light_direction,
+							triangle->view_direction,
+							triangle->color,
+							triangle->shine
+						);
+						set_pixel(canvas, x, y, to_u32_color(color));
+					}
+					else {
+						set_pixel(canvas, x, y, to_u32_color(triangle->color));
+					}
 				}
 			}
 		}
@@ -142,3 +156,13 @@ u32 get_rand_color() {
 	f32 b = dist(gen);
 	return to_u32_color(Vector3{ r, g, b });
 }
+
+// global random colors constant array
+const Vector3 random_colors[6] = {
+	 {1.0f, 0.0f, 0.0f},   // Red
+	 {0.0f, 1.0f, 0.0f},   // Green
+	 {0.0f, 0.0f, 1.0f},   // Blue
+	 {1.0f, 0.0f, 1.0f},   // Magenta / Pink
+	 {0.0f, 1.0f, 1.0f},   // Cyan
+	 {0.5f, 0.0f, 1.0f}    // Violet
+};
