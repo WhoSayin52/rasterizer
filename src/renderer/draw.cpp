@@ -38,8 +38,10 @@ void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Triangle* triangle) 
 			bool is_valid_pixel = a >= 0 && b >= 0 && c >= 0;
 			if (is_valid_pixel) {
 				f32 z = a * triangle->v1.z + b * triangle->v2.z + c * triangle->v3.z;
+
 				if (z < get_z_buffer_at(z_buffer, x, y)) {
 					set_z_buffer_at(z_buffer, x, y, z);
+
 					if (triangle->is_smooth) {
 						Vector3 normal = Math::normalize(a * triangle->n1 + b * triangle->n2 + c * triangle->n3);
 						Vector3 color = compute_fragment(
