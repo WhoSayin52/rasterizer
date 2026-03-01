@@ -1,6 +1,8 @@
 #ifndef ASSET_MANAGER_HPP
 #define ASSET_MANAGER_HPP
 
+#include "./tgaimage.hpp"
+
 #include <core/core.hpp>
 
 struct Renderer_Memory;
@@ -12,6 +14,7 @@ struct Face {
 };
 
 struct Model {
+	TGAImage tga;
 	Vector3* vertices;
 	Vector3* textures;
 	Vector3* normals;
@@ -23,7 +26,7 @@ struct Model {
 	i64 faces_count;
 };
 
-void set_asset_manager_path(wchar* path_to_assets);
-bool load_model(Renderer_Memory* memory, Model* model, const wchar* file_name);
+void init_asset_manager(wchar* path_to_assets);
+bool load_model(Renderer_Memory* memory, Model* model, const wchar* model_name);
 
 #endif // ASSET_MANAGER_HPP

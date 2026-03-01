@@ -4,4 +4,5 @@ target_sources(
 	camera.hpp camera.cpp
 	draw.hpp draw.cpp
 	render.hpp render.cpp
+	shader.hpp
 )

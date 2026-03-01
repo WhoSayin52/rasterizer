@@ -23,14 +23,37 @@ static void init_stream(Stream* stream, void* buffer, usize size);
 static bool allocate_model_resources(Renderer_Memory* memory, Model* model, Stream* stream);
 static bool extract_data(Model* model, Stream* stream);
 
-void set_asset_manager_path(wchar* path_to_assets) {
+void init_asset_manager(wchar* path_to_assets) {
 	wcscpy_s(global_path_to_assets, array_count(global_path_to_assets), path_to_assets);
 }
 
-bool load_model(Renderer_Memory* memory, Model* model, const wchar* file_name) {
+bool load_model(Renderer_Memory* memory, Model* model, const wchar* model_name) {
+	// TGA
+	std::string tga_file_name;
+	tga_file_name.reserve(wcslen(model_name));
+
+	for (const wchar_t* p = model_name; *p; ++p) {
+		tga_file_name.push_back(static_cast<char>(*p));
+	}
+
+	std::string string_path_to_assets;
+	string_path_to_assets.reserve(wcslen(global_path_to_assets));
+
+	for (const wchar_t* p = global_path_to_assets; *p; ++p) {
+		string_path_to_assets.push_back(static_cast<char>(*p));
+	}
+
+	if (model->tga.read_tga_file(string_path_to_assets + tga_file_name + "\\" + tga_file_name + "_nm.tga") == false) {
+		return false;
+	}
+	// TGA
+
 	wchar full_path[MAX_PATH * 4];
 	wcscpy_s(full_path, array_count(full_path), global_path_to_assets);
-	wcscat_s(full_path, array_count(full_path), file_name);
+	wcscat_s(full_path, array_count(full_path), model_name);
+	wcscat_s(full_path, array_count(full_path), L"\\");
+	wcscat_s(full_path, array_count(full_path), model_name);
+	wcscat_s(full_path, array_count(full_path), L".obj");
 
 	HANDLE file = CreateFile(
 		full_path, GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr

@@ -49,7 +49,7 @@ static Entity global_head_entity = {
 };
 
 static Vector3 global_light_direction = Math::normalize(Vector3{ 1, 1, -1 });
-static f32 global_shine_val = 1.0f;
+static f32 global_shine_val = 50.0f;
 static i32 global_render_choice = 0;
 static bool global_is_smooth = false;
 static bool global_has_texture = false;
@@ -67,10 +67,10 @@ static Vector3 to_ndc(Vector4 vertex);
 static Vector3 to_screen(Canvas* canvas, Vector3 vertex);
 
 void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
-	set_asset_manager_path(path_to_assets);
+	init_asset_manager(path_to_assets);
 
-	bool rc = load_model(memory, &global_diablo_entity.model, L"diablo3_pose.obj");
-	rc |= load_model(memory, &global_head_entity.model, L"head.obj");
+	bool rc = load_model(memory, &global_diablo_entity.model, L"diablo3_pose");
+	rc |= load_model(memory, &global_head_entity.model, L"african_head");
 
 	if (rc == false) {
 		exit(1);
