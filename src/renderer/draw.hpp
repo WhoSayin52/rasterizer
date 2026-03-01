@@ -4,6 +4,7 @@
 #include <core/core.hpp>
 
 struct Canvas;
+struct Entity;
 
 constexpr Vector3 COLOR_WHITE = { 1.0f, 1.0f, 1.0f };
 constexpr Vector3 COLOR_RED = { 1.0f, 0.0f, 0.0f };
@@ -20,6 +21,8 @@ struct Triangle {
 	Vector3 color;
 	f32 shine;
 
+	i64 index;
+
 	bool is_smooth;
 	bool has_texture;
 };
@@ -29,7 +32,7 @@ void set_z_buffer_at(Canvas* z_buffer, i32 x, i32 y, f32 val);
 
 f32 signed_triangle_area2(Vector2i p1, Vector2i p2, Vector2i p3);
 
-void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Triangle* triangle);
+void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Triangle* triangle, Entity* entity);
 void draw_line(Canvas* canvas, Vector2i p0, Vector2i p1, u32 color);
 void set_pixel(Canvas* canvas, i32 x, i32 y, u32 color);
 

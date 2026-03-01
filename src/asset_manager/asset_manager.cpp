@@ -43,9 +43,12 @@ bool load_model(Renderer_Memory* memory, Model* model, const wchar* model_name) 
 		string_path_to_assets.push_back(static_cast<char>(*p));
 	}
 
-	if (model->tga.read_tga_file(string_path_to_assets + tga_file_name + "\\" + tga_file_name + "_nm.tga") == false) {
+	if (model->normal_map.read_tga_file(string_path_to_assets + tga_file_name + "\\" + tga_file_name + "_nm.tga") == false) {
 		return false;
 	}
+
+	model->normal_map.flip_horizontally();
+	model->normal_map.flip_vertically();
 	// TGA
 
 	wchar full_path[MAX_PATH * 4];

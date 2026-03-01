@@ -3,9 +3,11 @@
 #include "./render.hpp"
 #include "./shader.hpp"
 
+#include "./../asset_manager/asset_manager.hpp"
+
 #include <cstdlib>
 
-void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Triangle* triangle) {
+void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Triangle* triangle, Entity* entity) {
 	Vector2i p1, p2, p3;
 
 	p1.x = (i32)triangle->v1.x;
@@ -52,6 +54,31 @@ void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Triangle* triangle) 
 							triangle->shine
 						);
 						set_pixel(canvas, x, y, to_u32_color(color));
+					}
+					else if (triangle->has_texture) {
+						Face* face = &entity->model.faces[triangle->index];
+						Vector3* textures = entity->model.textures;
+
+						Vector3 t1 = textures[face->t_indices[0]];
+						Vector3 t2 = textures[face->t_indices[1]];
+						Vector3 t3 = textures[face->t_indices[2]];
+
+						int w = entity->model.normal_map.width();
+						int h = entity->model.normal_map.height();
+
+						Vector2 u1 = { t1.x * w, t1.y * h };
+						Vector2 u2 = { t2.x * w, t2.y * h };
+						Vector2 u3 = { t3.x * w, t3.y * h };
+
+						Vector2 u = (u1 * a + u2 * b + u3 * c);
+
+						TGAColor tga_color = entity->model.normal_map.get((i32)u.x, (i32)u.y);
+
+						u32 grey = static_cast<u32>(tga_color[2] * 0.299 + tga_color[1] * 0.587 + tga_color[0] * 0.114);
+
+						u32 color = grey << 16 | grey << 8 | grey;
+
+						set_pixel(canvas, x, y, color);
 					}
 					else {
 						set_pixel(canvas, x, y, to_u32_color(triangle->color));

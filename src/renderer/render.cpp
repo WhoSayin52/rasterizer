@@ -10,14 +10,6 @@
 #include <cstring>
 #include <cfloat>
 
-// internal structs
-struct Entity {
-	Vector3 position;
-	Vector3 rotation;
-	Vector3 scale;
-	Model model;
-};
-
 // static global vars
 static Camera global_camera = {
 	.position = Vector3{0, 0, 0},
@@ -90,16 +82,22 @@ void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 	}
 	case Key::T: {
 		++global_render_choice;
-		global_render_choice = (global_render_choice > 3) ? 0 : global_render_choice;
+		global_render_choice = (global_render_choice > 4) ? 0 : global_render_choice;
+
+		// draw wire frame == 0
+		// draw filled rand colors == 1
+		// draw filled black white == 2
+		// draw smooth black white == 3
+		// draw detailed black white == 4
 
 		if (global_render_choice == 0) {
-			global_is_smooth = false;
 			global_has_texture = false;
 		}
 		else if (global_render_choice == 3) {
 			global_is_smooth = true;
 		}
 		else if (global_render_choice == 4) {
+			global_is_smooth = false;
 			global_has_texture = true;
 		}
 		break;
@@ -275,6 +273,8 @@ static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4
 			face.color = COLOR_WHITE;
 			face.shine = global_shine_val;
 
+			face.index = i;
+
 			face.is_smooth = global_is_smooth;
 			face.has_texture = global_has_texture;
 
@@ -302,7 +302,7 @@ static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4
 			}
 			case 1: {
 				face.color = random_colors[i % array_count(random_colors)];
-				draw_filled_triangle(canvas, z_buffer, &face);
+				draw_filled_triangle(canvas, z_buffer, &face, entity);
 				break;
 			}
 			case 2: {
@@ -319,11 +319,15 @@ static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4
 					face.shine
 				);
 
-				draw_filled_triangle(canvas, z_buffer, &face);
+				draw_filled_triangle(canvas, z_buffer, &face, entity);
 				break;
 			}
 			case 3: {
-				draw_filled_triangle(canvas, z_buffer, &face);
+				draw_filled_triangle(canvas, z_buffer, &face, entity);
+				break;
+			}
+			case 4: {
+				draw_filled_triangle(canvas, z_buffer, &face, entity);
 				break;
 			}
 			}

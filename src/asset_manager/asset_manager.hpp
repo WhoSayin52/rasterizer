@@ -14,7 +14,7 @@ struct Face {
 };
 
 struct Model {
-	TGAImage tga;
+	TGAImage normal_map;
 	Vector3* vertices;
 	Vector3* textures;
 	Vector3* normals;
@@ -24,6 +24,13 @@ struct Model {
 	i64 textures_count;
 	i64 normals_count;
 	i64 faces_count;
+};
+
+struct Entity {
+	Vector3 position;
+	Vector3 rotation;
+	Vector3 scale;
+	Model model;
 };
 
 void init_asset_manager(wchar* path_to_assets);
