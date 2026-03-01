@@ -42,9 +42,9 @@ static Entity global_head_entity = {
 
 static Vector3 global_light_direction = Math::normalize(Vector3{ 1, 1, -1 });
 static f32 global_shine_val = 50.0f;
-static i32 global_render_choice = 0;
+static i32 global_render_choice = 4;
 static bool global_is_smooth = false;
-static bool global_has_texture = false;
+static bool global_has_texture = true;
 
 // internal functions
 static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity);
@@ -62,11 +62,30 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	init_asset_manager(path_to_assets);
 
 	bool rc = load_model(memory, &global_diablo_entity.model, L"diablo3_pose");
-	rc |= load_model(memory, &global_head_entity.model, L"african_head");
+	rc = rc && load_model(memory, &global_head_entity.model, L"african_head");
 
 	if (rc == false) {
 		exit(1);
 	}
+
+	// diablo
+	global_diablo_entity.model.normal_map.flip_vertically();
+	global_diablo_entity.model.diffuse_map.flip_vertically();
+	global_diablo_entity.model.specular_map.flip_vertically();
+	global_diablo_entity.model.glow_map.flip_vertically();
+
+	// head
+	global_head_entity.model.normal_map.flip_vertically();
+	global_head_entity.model.normal_map.flip_horizontally();
+
+	global_head_entity.model.diffuse_map.flip_vertically();
+	global_head_entity.model.diffuse_map.flip_horizontally();
+
+	global_head_entity.model.specular_map.flip_vertically();
+	global_head_entity.model.specular_map.flip_horizontally();
+
+	global_head_entity.model.glow_map.flip_vertically();
+	global_head_entity.model.glow_map.flip_horizontally();
 }
 
 void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
@@ -82,13 +101,14 @@ void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 	}
 	case Key::T: {
 		++global_render_choice;
-		global_render_choice = (global_render_choice > 4) ? 0 : global_render_choice;
+		global_render_choice = (global_render_choice > 5) ? 0 : global_render_choice;
 
 		// draw wire frame == 0
 		// draw filled rand colors == 1
 		// draw filled black white == 2
 		// draw smooth black white == 3
 		// draw detailed black white == 4
+		// draw final == 5
 
 		if (global_render_choice == 0) {
 			global_has_texture = false;
@@ -330,61 +350,10 @@ static void draw_faces(Canvas* canvas, Canvas* z_buffer, Entity* entity, Vector4
 				draw_filled_triangle(canvas, z_buffer, &face, entity);
 				break;
 			}
+			case 5: {
+				draw_filled_triangle_final(canvas, z_buffer, &face, entity);
 			}
-			/*
-			if (draw_type == Draw_Type::FILLED) {
-				Triangle face;
-				face.v1 = v1;
-				face.v2 = v2;
-				face.v3 = v3;
-
-				face.n1 = entity->model.normals[faces[i].v_indices[0]];
-				face.n2 = entity->model.normals[faces[i].v_indices[1]];
-				face.n3 = entity->model.normals[faces[i].v_indices[2]];
-
-				face.color = COLOR_WHITE;
-
-				if (global_color_choice == 0) {
-					f32 rand_color = (f32)(i * i) / (entity->model.faces_count * entity->model.faces_count);
-					face.color = Vector3{ rand_color, rand_color, rand_color };
-				}
-				else if (global_color_choice == 1) {
-					Vector3 v1_ = entity->model.vertices[faces[i].v_indices[0]];
-					Vector3 v2_ = entity->model.vertices[faces[i].v_indices[1]];
-					Vector3 v3_ = entity->model.vertices[faces[i].v_indices[2]];
-
-					Vector3 face_normal = Math::normalize(Math::cross(v2_ - v1_, v3_ - v1_));
-					face.color = compute_fragment(
-						face_normal,
-						global_light_direction,
-						global_camera.basis.forward,
-						COLOR_WHITE,
-						global_shine_val
-					);
-				}
-				draw_filled_triangle(canvas, z_buffer, &face);
 			}
-			else {
-				Vector2i p1, p2, p3;
-
-				p1.x = (i32)v1.x;
-				p1.y = (i32)v1.y;
-
-				p2.x = (i32)v2.x;
-				p2.y = (i32)v2.y;
-
-				p3.x = (i32)v3.x;
-				p3.y = (i32)v3.y;
-
-				draw_line(canvas, p1, p2, to_u32_color(COLOR_RED));
-				draw_line(canvas, p1, p3, to_u32_color(COLOR_RED));
-				draw_line(canvas, p2, p3, to_u32_color(COLOR_RED));
-
-				set_pixel(canvas, p1.x, p1.y, to_u32_color(COLOR_WHITE));
-				set_pixel(canvas, p2.x, p2.y, to_u32_color(COLOR_WHITE));
-				set_pixel(canvas, p3.x, p3.y, to_u32_color(COLOR_WHITE));
-			}
-				*/
 		}
 	}
 }

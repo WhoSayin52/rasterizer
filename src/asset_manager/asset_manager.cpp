@@ -27,8 +27,14 @@ void init_asset_manager(wchar* path_to_assets) {
 	wcscpy_s(global_path_to_assets, array_count(global_path_to_assets), path_to_assets);
 }
 
+// loading tga helper
+static bool load_normal_map(Model* model, std::string tga_file_name, std::string string_path_to_assets);
+static bool load_diffuse_map(Model* model, std::string tga_file_name, std::string string_path_to_assets);
+static bool load_specular_map(Model* model, std::string tga_file_name, std::string string_path_to_assets);
+static bool load_glow_map(Model* model, std::string tga_file_name, std::string string_path_to_assets);
+
 bool load_model(Renderer_Memory* memory, Model* model, const wchar* model_name) {
-	// TGA
+
 	std::string tga_file_name;
 	tga_file_name.reserve(wcslen(model_name));
 
@@ -43,13 +49,17 @@ bool load_model(Renderer_Memory* memory, Model* model, const wchar* model_name) 
 		string_path_to_assets.push_back(static_cast<char>(*p));
 	}
 
-	if (model->normal_map.read_tga_file(string_path_to_assets + tga_file_name + "\\" + tga_file_name + "_nm.tga") == false) {
+	bool rc = load_normal_map(model, tga_file_name, string_path_to_assets);
+
+	rc = rc && load_diffuse_map(model, tga_file_name, string_path_to_assets);
+
+	rc = rc && load_specular_map(model, tga_file_name, string_path_to_assets);
+
+	if (rc == false) {
 		return false;
 	}
 
-	model->normal_map.flip_horizontally();
-	model->normal_map.flip_vertically();
-	// TGA
+	model->has_glow = load_glow_map(model, tga_file_name, string_path_to_assets);
 
 	wchar full_path[MAX_PATH * 4];
 	wcscpy_s(full_path, array_count(full_path), global_path_to_assets);
@@ -92,6 +102,46 @@ bool load_model(Renderer_Memory* memory, Model* model, const wchar* model_name) 
 	Memory::arena_restore(memory_snapshot);
 
 	return result;
+}
+
+static bool load_normal_map(Model* model, std::string tga_file_name, std::string string_path_to_assets) {
+
+	bool rc = model->normal_map.read_tga_file(string_path_to_assets + tga_file_name + "\\" + tga_file_name + "_nm.tga");
+	if (rc == false) {
+		return false;
+	}
+
+	return true;
+}
+
+static bool load_diffuse_map(Model* model, std::string tga_file_name, std::string string_path_to_assets) {
+
+	bool rc = model->diffuse_map.read_tga_file(string_path_to_assets + tga_file_name + "\\" + tga_file_name + "_diffuse.tga");
+	if (rc == false) {
+		return false;
+	}
+
+	return true;
+}
+
+static bool load_specular_map(Model* model, std::string tga_file_name, std::string string_path_to_assets) {
+
+	bool rc = model->specular_map.read_tga_file(string_path_to_assets + tga_file_name + "\\" + tga_file_name + "_spec.tga");
+	if (rc == false) {
+		return false;
+	}
+
+	return true;
+}
+
+static bool load_glow_map(Model* model, std::string tga_file_name, std::string string_path_to_assets) {
+
+	bool rc = model->glow_map.read_tga_file(string_path_to_assets + tga_file_name + "\\" + tga_file_name + "_glow.tga");
+	if (rc == false) {
+		return false;
+	}
+
+	return true;
 }
 
 // internal to Obj helpers

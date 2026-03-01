@@ -15,6 +15,9 @@ struct Face {
 
 struct Model {
 	TGAImage normal_map;
+	TGAImage diffuse_map;
+	TGAImage specular_map;
+	TGAImage glow_map;
 	Vector3* vertices;
 	Vector3* textures;
 	Vector3* normals;
@@ -24,6 +27,8 @@ struct Model {
 	i64 textures_count;
 	i64 normals_count;
 	i64 faces_count;
+
+	bool has_glow;
 };
 
 struct Entity {

@@ -7,6 +7,90 @@
 
 #include <cstdlib>
 
+void draw_filled_triangle_final(Canvas* canvas, Canvas* z_buffer, Triangle* triangle, Entity* entity) {
+	Vector2i p1, p2, p3;
+
+	p1.x = (i32)triangle->v1.x;
+	p1.y = (i32)triangle->v1.y;
+
+	p2.x = (i32)triangle->v2.x;
+	p2.y = (i32)triangle->v2.y;
+
+	p3.x = (i32)triangle->v3.x;
+	p3.y = (i32)triangle->v3.y;
+
+	// calculating the min and max point of the bounding box
+	i32 min_x = Math::minimum(p1.x, Math::minimum(p2.x, p3.x));
+	i32 min_y = Math::minimum(p1.y, Math::minimum(p2.y, p3.y));
+	i32 max_x = Math::maximum(p1.x, Math::maximum(p2.x, p3.x));
+	i32 max_y = Math::maximum(p1.y, Math::maximum(p2.y, p3.y));
+
+	f32 total_area2 = signed_triangle_area2(p1, p2, p3);
+	if (Math::abs(total_area2) < 2.0f) {
+		return;
+	}
+
+#pragma omp parallel for
+	for (i32 y = min_y; y <= max_y; ++y) {
+		for (i32 x = min_x; x <= max_x; ++x) {
+			f32 a = signed_triangle_area2(Vector2i{ x, y }, p2, p3) / total_area2;
+			f32 b = signed_triangle_area2(Vector2i{ x, y }, p3, p1) / total_area2;
+			f32 c = signed_triangle_area2(Vector2i{ x, y }, p1, p2) / total_area2;
+
+			bool is_valid_pixel = a >= 0 && b >= 0 && c >= 0;
+			if (is_valid_pixel) {
+				f32 z = a * triangle->v1.z + b * triangle->v2.z + c * triangle->v3.z;
+
+				if (z < get_z_buffer_at(z_buffer, x, y)) {
+					set_z_buffer_at(z_buffer, x, y, z);
+
+					Face* face = &entity->model.faces[triangle->index];
+					Vector3* textures = entity->model.textures;
+
+					Vector3 t1 = textures[face->t_indices[0]];
+					Vector3 t2 = textures[face->t_indices[1]];
+					Vector3 t3 = textures[face->t_indices[2]];
+
+					int w = entity->model.normal_map.width();
+					int h = entity->model.normal_map.height();
+
+					Vector2 u1 = { t1.x * w, t1.y * h };
+					Vector2 u2 = { t2.x * w, t2.y * h };
+					Vector2 u3 = { t3.x * w, t3.y * h };
+
+					Vector2 u = (u1 * a + u2 * b + u3 * c);
+
+					TGAColor tga_normal = entity->model.normal_map.get((i32)u.x, (i32)u.y);
+					TGAColor tga_diffuse = entity->model.diffuse_map.get((i32)u.x, (i32)u.y);
+					TGAColor tga_specular = entity->model.specular_map.get((i32)u.x, (i32)u.y);
+
+					Vector3 normal = { tga_normal[2] / 127.5f - 1.0f, tga_normal[1] / 127.5f - 1.0f, tga_normal[0] / 127.5f - 1.0f };
+					Vector3 diffuse = { tga_diffuse[2] / 255.0f, tga_diffuse[1] / 255.0f, tga_diffuse[0] / 255.0f };
+					f32 specular = tga_specular[0] / 255.0f;
+
+					Vector3 glow{};
+					if (entity->model.has_glow) {
+						TGAColor tga_glow = entity->model.glow_map.get((i32)u.x, (i32)u.y);
+						glow = { tga_diffuse[2] / 255.0f, tga_diffuse[1] / 255.0f, tga_diffuse[0] / 255.0f };
+					}
+
+					Vector3 color = compute_fragment_final(
+						normal,
+						diffuse,
+						glow,
+						triangle->view_direction,
+						triangle->light_direction,
+						specular,
+						triangle->shine
+					);
+
+					set_pixel(canvas, x, y, to_u32_color(color));
+				}
+			}
+		}
+	}
+}
+
 void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Triangle* triangle, Entity* entity) {
 	Vector2i p1, p2, p3;
 
@@ -72,13 +156,18 @@ void draw_filled_triangle(Canvas* canvas, Canvas* z_buffer, Triangle* triangle, 
 
 						Vector2 u = (u1 * a + u2 * b + u3 * c);
 
-						TGAColor tga_color = entity->model.normal_map.get((i32)u.x, (i32)u.y);
+						TGAColor tga_normal = entity->model.normal_map.get((i32)u.x, (i32)u.y);
 
-						u32 grey = static_cast<u32>(tga_color[2] * 0.299 + tga_color[1] * 0.587 + tga_color[0] * 0.114);
+						Vector3 normal = { tga_normal[2] / 127.5f - 1.0f, tga_normal[1] / 127.5f - 1.0f, tga_normal[0] / 127.5f - 1.0f };
 
-						u32 color = grey << 16 | grey << 8 | grey;
-
-						set_pixel(canvas, x, y, color);
+						Vector3 color = compute_fragment(
+							normal,
+							triangle->light_direction,
+							triangle->view_direction,
+							triangle->color,
+							triangle->shine
+						);
+						set_pixel(canvas, x, y, to_u32_color(color));
 					}
 					else {
 						set_pixel(canvas, x, y, to_u32_color(triangle->color));
