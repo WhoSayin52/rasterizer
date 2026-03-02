@@ -1,4 +1,5 @@
 # Real-Time Rasterizer
+
 <img src="https://github.com/user-attachments/assets/2ac6b513-6b16-4327-b350-3d3c465517d0"/>
 
 ## Table of Contents
