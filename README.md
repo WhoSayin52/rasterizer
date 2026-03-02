@@ -120,6 +120,10 @@ The renderer is a learning project — each stage exposes a deeper level of the 
 
 ## Installation
 ### Pre-Compiled Windows amd64
+[v0.1.0 Release](https://github.com/WhoSayin52/rasterizer/releases/download/v0.1.0/rasterizer.zip)
+- Download the zip folder
+- Extrace files
+- Run excutable inside `bin/` folder
 
 ---
 
