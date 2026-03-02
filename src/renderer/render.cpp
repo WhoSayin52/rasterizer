@@ -27,13 +27,22 @@ static Camera global_camera = {
 	.viewport = {}
 };
 
+// diablo
 static Entity global_diablo_entity = {
 	.position = Vector3{0, 0, -3.5f},
 	.rotation = Vector3{0, 0, 0},
 	.scale = Vector3{ 1, 1, 1},
 	.model = Model{},
 };
+
+// head
 static Entity global_head_entity = {
+	.position = Vector3{0, 0, -3.5f},
+	.rotation = Vector3{0, 0, 0},
+	.scale = Vector3{ 1, 1, 1},
+	.model = Model{},
+};
+static Entity global_head_eyes_entity = {
 	.position = Vector3{0, 0, -3.5f},
 	.rotation = Vector3{0, 0, 0},
 	.scale = Vector3{ 1, 1, 1},
@@ -42,12 +51,12 @@ static Entity global_head_entity = {
 
 static Vector3 global_light_direction = Math::normalize(Vector3{ 1, 1, -1 });
 static f32 global_shine_val = 50.0f;
-static i32 global_render_choice = 4;
+static i32 global_render_choice = 5;
 static bool global_is_smooth = false;
 static bool global_has_texture = true;
 
 // internal functions
-static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity);
+static void draw_entity(Memory::Arena* arena, Canvas* canvas, Canvas* z_buffer, Camera* camera, Entity* entity);
 
 static void transformation_pipeline(Camera* camera, Entity* entity, Vector4* vba);
 static void get_model_matrix(Matrix4* result, Vector3 position, Vector3 rotation, Vector3 scale);
@@ -62,7 +71,9 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 	init_asset_manager(path_to_assets);
 
 	bool rc = load_model(memory, &global_diablo_entity.model, L"diablo3_pose");
+
 	rc = rc && load_model(memory, &global_head_entity.model, L"african_head");
+	rc = rc && load_model(memory, &global_head_eyes_entity.model, L"african_head_eyes");
 
 	if (rc == false) {
 		exit(1);
@@ -86,17 +97,33 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 
 	global_head_entity.model.glow_map.flip_vertically();
 	global_head_entity.model.glow_map.flip_horizontally();
+
+	// head eyes
+	global_head_eyes_entity.model.normal_map.flip_vertically();
+	global_head_eyes_entity.model.normal_map.flip_horizontally();
+
+	global_head_eyes_entity.model.diffuse_map.flip_vertically();
+	global_head_eyes_entity.model.diffuse_map.flip_horizontally();
+
+	global_head_eyes_entity.model.specular_map.flip_vertically();
+	global_head_eyes_entity.model.specular_map.flip_horizontally();
+
+	global_head_eyes_entity.model.glow_map.flip_vertically();
+	global_head_eyes_entity.model.glow_map.flip_horizontally();
 }
 
 void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 
-	static Entity* entity = &global_diablo_entity;
+	// diablo == 0
+	// head == 1
+	static i32 entity_to_draw = 0;
 
 	camera_process(&global_camera, &event, delta_time);
 
 	switch (event.key) {
 	case Key::SPACE: {
-		entity = (entity == &global_diablo_entity) ? &global_head_entity : entity = &global_diablo_entity;
+		++entity_to_draw;
+		entity_to_draw = (entity_to_draw > 1) ? 0 : entity_to_draw;
 		break;
 	}
 	case Key::T: {
@@ -127,15 +154,7 @@ void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
 	}
 	}
 
-	draw_entity(arena, canvas, &global_camera, entity);
-}
-#include <iostream>
-static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, Entity* entity) {
-
 	Memory::Arena_Snapshot arena_snapshot = Memory::arena_create_snapshot(arena);
-
-	i64 vba_count = entity->model.vertices_count;
-	Vector4* vba = (Vector4*)Memory::arena_push(arena, vba_count * sizeof(Vector4), alignof(Vector4));
 
 	Canvas z_buffer;
 	z_buffer.w = canvas->w;
@@ -145,8 +164,27 @@ static void draw_entity(Memory::Arena* arena, Canvas* canvas, Camera* camera, En
 	z_buffer.framebuffer = Memory::arena_push(arena, z_buffer.h * z_buffer.pitch, alignof(f32));
 	std::fill((f32*)z_buffer.framebuffer, (f32*)z_buffer.framebuffer + z_buffer.w * z_buffer.h, FLT_MAX);
 
+	if (entity_to_draw == 0) {
+		draw_entity(arena, canvas, &z_buffer, &global_camera, &global_diablo_entity);
+
+	}
+	else {
+		draw_entity(arena, canvas, &z_buffer, &global_camera, &global_head_entity);
+		draw_entity(arena, canvas, &z_buffer, &global_camera, &global_head_eyes_entity);
+	}
+
+	Memory::arena_restore(arena_snapshot);
+}
+
+static void draw_entity(Memory::Arena* arena, Canvas* canvas, Canvas* z_buffer, Camera* camera, Entity* entity) {
+
+	Memory::Arena_Snapshot arena_snapshot = Memory::arena_create_snapshot(arena);
+
+	i64 vba_count = entity->model.vertices_count;
+	Vector4* vba = (Vector4*)Memory::arena_push(arena, vba_count * sizeof(Vector4), alignof(Vector4));
+
 	transformation_pipeline(camera, entity, vba);
-	draw_faces(canvas, &z_buffer, entity, vba);
+	draw_faces(canvas, z_buffer, entity, vba);
 
 	Memory::arena_restore(arena_snapshot);
 }
