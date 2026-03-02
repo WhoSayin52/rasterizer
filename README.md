@@ -6,7 +6,7 @@
 - [Description](#description)
 - [Learning Objectives](#learning-objectives)
 - [Features](#features)
-- [Rendering Stages (Screenshots)](#rendering-stages)
+- [Rendering Stages & Screenshots](#rendering-stages--screenshots)
 - [Controls](#controls)
 - [Installation](#installation)
 - [Conclusion](#conclusion)
@@ -73,7 +73,7 @@ The goal of this project is to deeply understand how modern graphics pipelines w
 - Custom Windows message loop
 - No graphics APIs
 
-## Rendering Stages (Screenshots)
+## Rendering Stages & Screenshots
 The renderer is a learning project — each stage exposes a deeper level of the graphics pipeline.
 
 ### Wireframe Rendering
