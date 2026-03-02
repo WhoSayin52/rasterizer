@@ -143,7 +143,7 @@ Follow these steps to clone and build the project:
    
 3. Clone the repository: 
 ```bash
-git clone <repo-url>
+git clone https://github.com/WhoSayin52/rasterizer.git
 cd ./rasterizer
 ```
 3. Build the project:
@@ -154,7 +154,7 @@ cmake --build build --config Release # or Debug if desired
 4. Run the project:
 ```bash
 cd ./build/Release # or Debug
-explorer .
+./rasterizer.exe # or explorer .
 ```
 
 ## Conclusion
