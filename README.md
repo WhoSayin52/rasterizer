@@ -103,7 +103,7 @@ The renderer is a learning project — each stage exposes a deeper level of the 
 ### Normal Mapping
 <p align="center">
   <img src="https://github.com/user-attachments/assets/da846b37-19c6-4d4b-af00-76a27fc0a8b1" width="48%" />
-  <img src="https://github.com/user-attachments/assets/8d518300-42c5-4c58-b6e0-ddd1266ec94c" width="48%" />
+  <img src="https://github.com/user-attachments/assets/e814ce25-44de-42e5-9636-f4632196bbc5" width="48%" />
 </p>
 
 ### Diffuse + Specular Mapping (Final Result)
