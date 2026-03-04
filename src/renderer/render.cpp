@@ -87,29 +87,15 @@ void init_renderer(Renderer_Memory* memory, wchar* path_to_assets) {
 
 	// head
 	global_head_entity.model.normal_map.flip_vertically();
-	global_head_entity.model.normal_map.flip_horizontally();
-
 	global_head_entity.model.diffuse_map.flip_vertically();
-	global_head_entity.model.diffuse_map.flip_horizontally();
-
 	global_head_entity.model.specular_map.flip_vertically();
-	global_head_entity.model.specular_map.flip_horizontally();
-
 	global_head_entity.model.glow_map.flip_vertically();
-	global_head_entity.model.glow_map.flip_horizontally();
 
 	// head eyes
 	global_head_eyes_entity.model.normal_map.flip_vertically();
-	global_head_eyes_entity.model.normal_map.flip_horizontally();
-
 	global_head_eyes_entity.model.diffuse_map.flip_vertically();
-	global_head_eyes_entity.model.diffuse_map.flip_horizontally();
-
 	global_head_eyes_entity.model.specular_map.flip_vertically();
-	global_head_eyes_entity.model.specular_map.flip_horizontally();
-
 	global_head_eyes_entity.model.glow_map.flip_vertically();
-	global_head_eyes_entity.model.glow_map.flip_horizontally();
 }
 
 void render(Memory::Arena* arena, Canvas* canvas, Event event, f32 delta_time) {
