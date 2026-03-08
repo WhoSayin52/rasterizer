@@ -5,8 +5,8 @@
 ## Table of Contents
 - [Description](#description)
 - [Learning Objectives](#learning-objectives)
-- [Features](#features)
 - [Rendering Stages & Screenshots](#rendering-stages--screenshots)
+- [Features](#features)
 - [Controls](#controls)
 - [Installation](#installation)
 - [Conclusion](#conclusion)
@@ -27,6 +27,44 @@ The renderer walks step-by-step through the complete graphics pipeline.
 ## Learning Objectives
 The goal of this project is to deeply understand how modern graphics pipelines work by reconstructing them entirely in software.
 
+## Rendering Stages & Screenshots
+The renderer is a learning project — each stage exposes a deeper level of the graphics pipeline.
+
+### Wireframe Rendering
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/14e7c024-e081-493e-97b8-a1cefa56506b" width="48%" />
+  <img src="https://github.com/user-attachments/assets/7405e2cf-4a10-4522-b818-101c158797f9" width="48%" />
+</p>
+
+### Filled Triangles (Random Colors)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/48eb0eaf-d3ff-4611-a040-d75f2480fd76" width="48%" />
+  <img src="https://github.com/user-attachments/assets/6f47dd1c-aa57-4d1a-9cb2-4c0b7a5fed50" width="48%" />
+</p>
+
+### Flat Shading (Per-Triangle Normals)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/f4ccb16d-2cbd-487b-a277-9ff0647004b0" width="48%" />
+  <img src="https://github.com/user-attachments/assets/7a047878-c208-4e66-9de8-e3e3dec26a19" width="48%" />
+</p>
+
+### Smooth Shading (Per-Pixel Normals via Barycentric Interpolation)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/1d078383-c352-4b0d-8255-f9e0ca303e7a" width="48%" />
+  <img src="https://github.com/user-attachments/assets/81591b1c-2be2-47af-8f64-9e490f427b53" width="48%" />
+</p>
+
+### Normal Mapping
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/da846b37-19c6-4d4b-af00-76a27fc0a8b1" width="48%" />
+  <img src="https://github.com/user-attachments/assets/e814ce25-44de-42e5-9636-f4632196bbc5" width="48%" />
+</p>
+
+### Diffuse + Specular Mapping (Final Result)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/12dabcac-1950-4f3b-b9ab-ba6acb74957c" width="48%" />
+  <img src="https://github.com/user-attachments/assets/cd08e1bb-1566-4355-88f9-3eba7888c92e" width="48%" />
+</p>
 
 ## Features
 ### Rendering Pipeline (From Scratch)
@@ -72,45 +110,6 @@ The goal of this project is to deeply understand how modern graphics pipelines w
 - Display using `StretchDIBits`
 - Custom Windows message loop
 - No graphics APIs
-
-## Rendering Stages & Screenshots
-The renderer is a learning project — each stage exposes a deeper level of the graphics pipeline.
-
-### Wireframe Rendering
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/14e7c024-e081-493e-97b8-a1cefa56506b" width="48%" />
-  <img src="https://github.com/user-attachments/assets/7405e2cf-4a10-4522-b818-101c158797f9" width="48%" />
-</p>
-
-### Filled Triangles (Random Colors)
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/48eb0eaf-d3ff-4611-a040-d75f2480fd76" width="48%" />
-  <img src="https://github.com/user-attachments/assets/6f47dd1c-aa57-4d1a-9cb2-4c0b7a5fed50" width="48%" />
-</p>
-
-### Flat Shading (Per-Triangle Normals)
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/f4ccb16d-2cbd-487b-a277-9ff0647004b0" width="48%" />
-  <img src="https://github.com/user-attachments/assets/7a047878-c208-4e66-9de8-e3e3dec26a19" width="48%" />
-</p>
-
-### Smooth Shading (Per-Pixel Normals via Barycentric Interpolation)
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/1d078383-c352-4b0d-8255-f9e0ca303e7a" width="48%" />
-  <img src="https://github.com/user-attachments/assets/81591b1c-2be2-47af-8f64-9e490f427b53" width="48%" />
-</p>
-
-### Normal Mapping
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/da846b37-19c6-4d4b-af00-76a27fc0a8b1" width="48%" />
-  <img src="https://github.com/user-attachments/assets/8d518300-42c5-4c58-b6e0-ddd1266ec94c" width="48%" />
-</p>
-
-### Diffuse + Specular Mapping (Final Result)
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/12dabcac-1950-4f3b-b9ab-ba6acb74957c" width="48%" />
-  <img src="https://github.com/user-attachments/assets/cd08e1bb-1566-4355-88f9-3eba7888c92e" width="48%" />
-</p>
 
 ## Controls
 - **T** → Advance to next rendering stage (cyclical)
