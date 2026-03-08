@@ -48,10 +48,11 @@ void camera_process(Camera* camera, Event* event, f32 delta_time) {
 	f32 x_rad = Math::to_radians(camera->rotation.x);
 	f32 y_rad = Math::to_radians(camera->rotation.y);
 
-	camera->basis.z_axis.x = sinf(y_rad) * cosf(x_rad);
-	camera->basis.z_axis.y = -sinf(x_rad);
-	camera->basis.z_axis.z = cosf(y_rad) * cosf(x_rad);
-	camera->basis.z_axis = Math::normalize(camera->basis.z_axis);
+	Quaternion qx = Math::create_quaternion(x_rad, Vector3{ 1, 0, 0 });
+	Quaternion qy = Math::create_quaternion(y_rad, Vector3{ 0, 1, 0 });
+	Quaternion q = qy * qx;
+
+	camera->basis.z = Math::normalize(Math::rotate(Vector3{ 0, 0, 1 }, q));
 
 	Vector3 up_vector = { 0, 1, 0 };
 	camera->basis.x_axis = Math::cross(up_vector, camera->basis.z_axis);

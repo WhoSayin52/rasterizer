@@ -214,26 +214,14 @@ static void get_model_matrix(Matrix4* result, Vector3 position, Vector3 rotation
 	f32 y_rad = Math::to_radians(rotation.y);
 	f32 z_rad = Math::to_radians(rotation.z);
 
-	Matrix4 rotation_matrix_around_x;
-	rotation_matrix_around_x.x_axis = Vector4{ 1, 0, 0, 0 };
-	rotation_matrix_around_x.y_axis = Vector4{ 0, cosf(x_rad), sinf(x_rad), 0 };
-	rotation_matrix_around_x.z_axis = Vector4{ 0, -sinf(x_rad), cosf(x_rad), 0 };
-	rotation_matrix_around_x.w_axis = Vector4{ 0, 0, 0, 1 };
+	Quaternion qx = Math::create_quaternion(x_rad, Vector3{ 1, 0, 0 });
+	Quaternion qy = Math::create_quaternion(y_rad, Vector3{ 0, 1, 0 });
+	Quaternion qz = Math::create_quaternion(z_rad, Vector3{ 0, 0, 1 });
 
-	Matrix4 rotation_matrix_around_y;
-	rotation_matrix_around_y.x_axis = Vector4{ cosf(y_rad), 0, -sinf(y_rad), 0 };
-	rotation_matrix_around_y.y_axis = Vector4{ 0, 1, 0, 0 };
-	rotation_matrix_around_y.z_axis = Vector4{ sinf(y_rad), 0, cosf(y_rad), 0 };
-	rotation_matrix_around_y.w_axis = Vector4{ 0, 0, 0, 1 };
+	// extrinsic x y z order
+	Quaternion q = qz * qy * qx;
 
-	Matrix4 rotation_matrix_around_z;
-	rotation_matrix_around_z.x_axis = Vector4{ cosf(z_rad), -sinf(z_rad), 0, 0 };
-	rotation_matrix_around_z.y_axis = Vector4{ sinf(z_rad), cosf(z_rad), 0, 0 };
-	rotation_matrix_around_z.z_axis = Vector4{ 0, 0, 1, 0 };
-	rotation_matrix_around_z.w_axis = Vector4{ 0, 0, 0, 1 };
-
-	// x y z order
-	Matrix4 rotation_matrix = rotation_matrix_around_z * rotation_matrix_around_y * rotation_matrix_around_x;
+	Matrix4 rotation_matrix = Math::get_rotation_matrix4(q);
 
 	*result = translation_matrix * rotation_matrix * scale_matrix;
 }

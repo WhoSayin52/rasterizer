@@ -57,9 +57,10 @@ namespace Math {
 
 		f32 half_angle = angle * 0.5f;
 
-		f32 s = -sinf(half_angle);
+		f32 s = sinf(half_angle);
 		f32 w = cosf(half_angle);
-		Quaternion{ s * axis.x, s * axis.y, s * axis.z, w };
+
+		return Quaternion{ s * axis.x, s * axis.y, s * axis.z, w };
 	}
 
 	inline Vector3 rotate(Vector3 v, Quaternion q) {
