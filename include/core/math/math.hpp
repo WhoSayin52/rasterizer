@@ -3,6 +3,7 @@
 
 #include "./matrix/matrix.hpp"
 #include "./vector/vector.hpp"
+#include "./quaternion.hpp"
 #include "./types.hpp"
 
 #endif // CORE_MATH_MATH_HPP
